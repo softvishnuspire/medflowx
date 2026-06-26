@@ -33,6 +33,12 @@ io.on('connection', (socket) => {
     console.log(`Socket ${socket.id} joined room: ${room}`);
   });
 
+  // Listen for queue updates and broadcast to everyone in the room or globally
+  socket.on('update-queue', (data) => {
+    console.log(`Queue update broadcast requested by ${socket.id}:`, data);
+    io.emit('queue-updated', data);
+  });
+
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`);
   });
