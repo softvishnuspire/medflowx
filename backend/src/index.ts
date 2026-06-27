@@ -3,6 +3,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { initPharmacyRoutes } from './routes/pharmacy';
 
 dotenv.config();
 
@@ -17,6 +18,9 @@ const io = new Server(server, {
 
 app.use(cors());
 app.use(express.json());
+
+// Initialize Pharmacy Routes
+initPharmacyRoutes(app, io);
 
 // Basic health check route
 app.get('/api/health', (req, res) => {

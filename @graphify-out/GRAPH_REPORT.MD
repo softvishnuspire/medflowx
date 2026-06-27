@@ -37,12 +37,24 @@ graph TD
   - `/src/app/auth/page.tsx` - Auth module placeholder
   - `/src/app/reception/page.tsx` - Reception module placeholder
   - `/src/app/doctor/page.tsx` - Doctor module placeholder
-  - `/src/app/pharmacy/page.tsx` - Pharmacy module placeholder
+  - `/src/app/pharmacy/page.tsx` - Completed Pharmacist Workspace UI (queue lookup, checkout, stock controls, socket connection)
   - `/src/app/admin/page.tsx` - Admin module placeholder
 
 ### Backend
 - `/backend`
-  - `/src/index.ts` - Setup Express, Socket.io, middleware, and `/api/health`
+  - `/src/index.ts` - Setup Express, Socket.io, middleware, health check, and registered pharmacy routes
+  - `/src/supabase.ts` - Supabase service role client connection helper
+  - `/src/routes/pharmacy.ts` - Pharmacy business logic and endpoints (inventory, stock batch add, queue query, checkout FIFO logic)
   - `/package.json` - Backend dependency configuration
   - `/tsconfig.json` - Backend TypeScript compiler options
   - `/.env` - Backend environment settings
+
+## Recent Fixes & Adjustments
+- **Supabase Client Initialization**: Safe guards added in [supabaseClient.ts](file:///c:/Users/phani/Desktop/office-files/medical-tracker-trueupmedia/frontend/src/lib/supabaseClient.ts) to check configurations before calling `createClient`, preventing top-level crashes when environment variables are unset.
+- **Supabase Null Client Fix**: Added Proxy-based safeguards in [supabaseClient.ts](file:///c:/Users/phani/Desktop/office-files/medical-tracker-trueupmedia/frontend/src/lib/supabaseClient.ts) and [supabase.ts](file:///c:/Users/phani/Desktop/office-files/medical-tracker-trueupmedia/frontend/src/lib/supabase.ts) to throw descriptive errors when Supabase environment variables are missing. This allows the reception panel's error boundary to display database connection instructions instead of throwing a blank screen with `Cannot read properties of null (reading 'from')`.
+- **Frontend Environment Configuration**: Created a `.env.local` file in the `frontend` folder containing the correct Supabase connection parameters mapped from the backend environment configuration to establish database connectivity.
+- **Outpatient Visit Query Nesting Fix**: Corrected relationship joining queries in [reception.ts](file:///c:/Users/phani/Desktop/office-files/medical-tracker-trueupmedia/frontend/src/services/reception.ts) where `departments(*)` was queried as a top-level property of `visits` or nested directly within `visits`. Because the database schema defines the department relation on the `doctors` table and not `visits`, `departments(*)` was nested inside `doctors(...)` select sub-queries to prevent Supabase from returning null results.
+
+
+
+

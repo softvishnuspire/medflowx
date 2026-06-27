@@ -276,11 +276,13 @@ export async function createVisit(visitData: VisitFormValues) {
     throw invoiceError;
   }
 
-  const { data: finalVisit } = await supabase
+  const { data: finalVisit, error: finalVisitError } = await supabase
     .from('visits')
-    .select('*, patients(*), doctors(*, profiles!user_id(full_name)), departments(*)')
+    .select('*, patients(*), doctors(*, profiles!user_id(full_name), departments(*))')
     .eq('id', visit.id)
     .single();
+
+  if (finalVisitError) throw finalVisitError;
 
   // Socket update emission
   try {
@@ -443,7 +445,7 @@ export async function getPatientsList(filters: {
 export async function getPendingInvoices() {
   const { data, error } = await supabase
     .from('invoices')
-    .select('*, patients(*), visits(*, doctors(*, profiles!user_id(full_name)), departments(*))')
+    .select('*, patients(*), visits(*, doctors(*, profiles!user_id(full_name), departments(*)))')
     .eq('status', 'Unpaid')
     .order('created_at', { ascending: false });
 
