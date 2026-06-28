@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // Subviews
 import DashboardView from '@/features/admin/dashboard-view';
@@ -40,6 +40,25 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState({ name: 'Hospital Administrator', email: '', avatarCode: 'AD' });
+
+  useEffect(() => {
+    const saved = localStorage.getItem('medflowx_logged_in_user');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.role === 'Admin') {
+          setCurrentUser({
+            name: parsed.name || 'Hospital Administrator',
+            email: parsed.email || '',
+            avatarCode: parsed.avatarCode || 'AD'
+          });
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
 
   // Drilldown helper
   const handleViewPatientProfile = (patientId: number) => {
@@ -177,11 +196,11 @@ export default function AdminPage() {
           
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <span className="block text-sm font-semibold text-zinc-800">Hospital Administrator</span>
-              <span className="block text-[10px] text-zinc-400">MedflowX Superuser</span>
+              <span className="block text-sm font-semibold text-zinc-800">{currentUser.name}</span>
+              <span className="block text-[10px] text-zinc-400">{currentUser.email || 'MedflowX Superuser'}</span>
             </div>
-            <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm shadow-inner border border-primary/20">
-              AD
+            <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm shadow-inner border border-primary/20 uppercase">
+              {currentUser.avatarCode}
             </div>
           </div>
         </header>

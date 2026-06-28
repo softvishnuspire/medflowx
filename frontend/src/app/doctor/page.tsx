@@ -140,7 +140,22 @@ export default function DoctorPage() {
       const formattedDoctors = (data || []) as unknown as Doctor[];
       setDoctors(formattedDoctors);
       if (formattedDoctors.length > 0) {
-        setSelectedDoctor(formattedDoctors[0]);
+        // Try to match logged-in doctor from localStorage session
+        const saved = localStorage.getItem('medflowx_logged_in_user');
+        let matchedDoc = null;
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed.role === 'Doctor') {
+              matchedDoc = formattedDoctors.find(
+                d => d.profiles?.email?.toLowerCase() === parsed.email?.toLowerCase()
+              );
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        setSelectedDoctor(matchedDoc || formattedDoctors[0]);
       }
     } catch (error: any) {
       console.error('Error fetching doctors:', error.message);
@@ -209,20 +224,20 @@ export default function DoctorPage() {
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-zinc-900/40 backdrop-blur-xs md:hidden"
+          className="fixed inset-0 z-40 bg-zinc-900/60 backdrop-blur-xs md:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       {/* Sidebar Navigation */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-zinc-150 flex flex-col justify-between shrink-0 shadow-sm transition-transform duration-300 md:static md:translate-x-0 ${
+      <aside className={`fixed inset-y-0 left-0 z-50 w-66 bg-white border-r border-zinc-200 flex flex-col justify-between shrink-0 shadow-md transition-transform duration-250 md:static md:translate-x-0 ${
         isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="flex flex-col flex-1">
           {/* Logo Brand */}
-          <div className="h-16 px-6 border-b border-zinc-100 flex items-center justify-between">
+          <div className="h-16 px-6 border-b border-zinc-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-primary text-white shadow-inner">
+              <div className="p-2 rounded-lg bg-primary text-white shadow-sm transition-transform duration-200 hover:scale-105">
                 <Stethoscope className="h-5 w-5" />
               </div>
               <span className="font-extrabold text-zinc-900 tracking-tight text-lg font-heading">
@@ -232,14 +247,15 @@ export default function DoctorPage() {
             {/* Mobile close button */}
             <button 
               onClick={() => setIsMobileMenuOpen(false)}
-              className="p-1.5 hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 rounded-lg md:hidden cursor-pointer"
+              className="p-2 hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 rounded-lg md:hidden cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+              aria-label="Close menu"
             >
-              <X className="h-4.5 w-4.5" />
+              <X className="h-5 w-5" />
             </button>
           </div>
 
           {/* Navigation Links */}
-          <nav className="p-4 space-y-1 overflow-y-auto flex-1">
+          <nav className="p-4 space-y-1.5 overflow-y-auto flex-1 font-body">
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -251,13 +267,13 @@ export default function DoctorPage() {
                     setActiveTab(item.id);
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
                     isActive
-                      ? 'bg-primary/10 text-primary font-semibold shadow-sm border-l-2 border-primary pl-3.5'
-                      : 'text-zinc-500 hover:text-primary hover:bg-zinc-50'
+                      ? 'bg-primary text-white shadow-md font-bold'
+                      : 'text-zinc-600 hover:text-primary hover:bg-primary/5'
                   }`}
                 >
-                  <Icon className={`h-4.5 w-4.5 ${isActive ? 'text-primary' : 'text-zinc-400'}`} />
+                  <Icon className={`h-5 w-5 transition-colors ${isActive ? 'text-white' : 'text-zinc-400 group-hover:text-primary'}`} />
                   <span>{item.label}</span>
                 </button>
               );
@@ -266,27 +282,27 @@ export default function DoctorPage() {
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 border-t border-zinc-100 space-y-1 bg-zinc-50/50">
+        <div className="p-4 border-t border-zinc-200 space-y-1.5 bg-zinc-50/70">
           <button
             onClick={() => {
               setActiveTab('profile');
               setIsMobileMenuOpen(false);
             }}
-            className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
               activeTab === 'profile'
-                ? 'bg-primary/10 text-primary font-semibold border-l-2 border-primary pl-3.5'
-                : 'text-zinc-500 hover:text-primary hover:bg-zinc-150/50'
+                ? 'bg-primary text-white shadow-md font-bold'
+                : 'text-zinc-600 hover:text-primary hover:bg-primary/5'
             }`}
           >
-            <User className="h-4.5 w-4.5 text-zinc-400" />
+            <User className={`h-5 w-5 ${activeTab === 'profile' ? 'text-white' : 'text-zinc-400'}`} />
             <span>Profile</span>
           </button>
           
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-red-650 hover:bg-red-50 transition-colors cursor-pointer"
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-red-650 hover:bg-red-50/80 transition-all duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none"
           >
-            <LogOut className="h-4.5 w-4.5 text-red-400" />
+            <LogOut className="h-5 w-5 text-red-500" />
             <span>Logout</span>
           </button>
         </div>
@@ -295,36 +311,37 @@ export default function DoctorPage() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-hidden bg-bg-custom">
         {/* Top Header Bar */}
-        <header className="h-16 border-b border-zinc-150 bg-white px-6 md:px-8 flex items-center justify-between shrink-0 shadow-sm z-30">
+        <header className="h-16 border-b border-zinc-200 bg-white px-6 md:px-8 flex items-center justify-between shrink-0 shadow-sm z-30 font-heading">
           
           {/* Mobile open menu toggle */}
           <div className="flex items-center gap-3 md:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="p-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-500 cursor-pointer"
+              className="p-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-500 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+              aria-label="Open menu"
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div className="text-xs text-zinc-400 font-bold uppercase tracking-wider font-heading">
-              Doctor Portal
+            <div className="text-xs text-zinc-500 font-bold uppercase tracking-wider font-heading">
+              OPD Portal
             </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-1.5 text-xs text-zinc-450 font-semibold uppercase tracking-wider font-heading">
-            <div className={`h-2 w-2 rounded-full ${socketConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
-            <span>{socketConnected ? 'Clinical Terminal Active' : 'EHR Offline Mode'}</span>
+          <div className="hidden md:flex items-center gap-2 text-xs text-zinc-500 font-bold uppercase tracking-wider font-heading">
+            <div className={`h-2.5 w-2.5 rounded-full ${socketConnected ? 'bg-emerald-500 animate-pulse ring-4 ring-emerald-500/20' : 'bg-rose-500 ring-4 ring-rose-500/20'}`} />
+            <span>{socketConnected ? 'CLINICAL ACTIVE' : 'EHR OFFLINE MODE'}</span>
           </div>
           
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-zinc-400 font-semibold uppercase tracking-wider">Active Dr:</span>
+            <div className="flex items-center gap-2 font-body">
+              <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Active Dr:</span>
               <select
                 value={selectedDoctor?.id || ''}
                 onChange={(e) => {
                   const doc = doctors.find(d => d.id === e.target.value);
                   if (doc) setSelectedDoctor(doc);
                 }}
-                className="bg-white text-zinc-800 text-xs font-semibold py-1.5 px-3 rounded-lg border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
+                className="bg-white text-zinc-800 text-xs font-bold py-1.5 px-3 rounded-lg border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary cursor-pointer hover:border-zinc-350 transition-colors"
               >
                 {doctors.map((doc) => (
                   <option key={doc.id} value={doc.id}>
@@ -335,12 +352,12 @@ export default function DoctorPage() {
             </div>
 
             {selectedDoctor && (
-              <div className="flex items-center gap-3 border-l border-zinc-150 pl-4">
+              <div className="flex items-center gap-3 border-l border-zinc-200 pl-4 font-body">
                 <div className="text-right hidden sm:block">
-                  <span className="block text-sm font-semibold text-zinc-800">{selectedDoctor.profiles?.full_name}</span>
-                  <span className="block text-[10px] text-zinc-450">{selectedDoctor.qualification}</span>
+                  <span className="block text-sm font-bold text-zinc-800 leading-tight">{selectedDoctor.profiles?.full_name}</span>
+                  <span className="block text-[10px] text-zinc-400 font-semibold font-heading uppercase">{selectedDoctor.qualification}</span>
                 </div>
-                <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm shadow-inner border border-primary/20">
+                <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-black flex items-center justify-center text-sm shadow-inner border border-primary/20 hover:bg-primary hover:text-white transition-colors duration-200 cursor-default">
                   {selectedDoctor.profiles?.full_name
                     ? selectedDoctor.profiles.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
                     : 'DR'

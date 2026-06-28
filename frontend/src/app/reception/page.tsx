@@ -41,8 +41,27 @@ type Tab =
   | 'profile';
 
 export default function ReceptionPage() {
+  const [currentUser, setCurrentUser] = useState({ name: 'Receptionist Desk', email: 'Desk Terminal #01', avatarCode: 'RD' });
+
   useEffect(() => {
     socket.connect();
+    
+    const saved = localStorage.getItem('medflowx_logged_in_user');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.role === 'Reception') {
+          setCurrentUser({
+            name: parsed.name || 'Sarah Connor',
+            email: parsed.email || 'Desk Terminal #01',
+            avatarCode: parsed.avatarCode || 'SC'
+          });
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
     return () => {
       socket.disconnect();
     };
@@ -178,11 +197,11 @@ export default function ReceptionPage() {
           
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <span className="block text-sm font-semibold text-zinc-800">Receptionist Desk</span>
-              <span className="block text-[10px] text-zinc-400">Desk Terminal #01</span>
+              <span className="block text-sm font-semibold text-zinc-800">{currentUser.name}</span>
+              <span className="block text-[10px] text-zinc-400">{currentUser.email}</span>
             </div>
-            <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm shadow-inner border border-primary/20">
-              RD
+            <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm shadow-inner border border-primary/20 uppercase">
+              {currentUser.avatarCode}
             </div>
           </div>
         </header>

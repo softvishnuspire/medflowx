@@ -41,14 +41,13 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
   
   // Selection states
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [selectedDept, setSelectedDept] = useState<Department | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<Doctor | null>(null);
   const [chiefComplaint, setChiefComplaint] = useState('');
   
   // Data lists
   const [searchResults, setSearchResults] = useState<Patient[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [recentPatients, setRecentPatients] = useState<Patient[]>([]);
   
   // Loader & Search inputs
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,20 +58,23 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Load departments & doctors metadata
+  // Load doctors & recent patients metadata
   useEffect(() => {
     const loadMetadata = async () => {
       try {
         setIsLoadingMetadata(true);
-        const [deptsData, docsData] = await Promise.all([
-          getDepartments(),
-          getDoctors()
+        const [docsData, recentPatsData] = await Promise.all([
+          getDoctors(),
+          searchPatients('')
         ]);
-        setDepartments(deptsData);
         setDoctors(docsData);
+        setRecentPatients(recentPatsData);
+        if (docsData.length > 0) {
+          setSelectedDoc(docsData[0]);
+        }
       } catch (err: any) {
         console.error(err);
-        toast('Failed to load department or doctor records', 'error');
+        toast('Failed to load metadata records', 'error');
       } finally {
         setIsLoadingMetadata(false);
       }
@@ -84,7 +86,7 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
   useEffect(() => {
     if (initialPatient) {
       setSelectedPatient(initialPatient);
-      setCurrentStep('select_department');
+      setCurrentStep('visit_details');
     }
   }, [initialPatient]);
 
@@ -123,7 +125,7 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
   };
 
   const handleCreateVisitSubmit = async () => {
-    if (!selectedPatient || !selectedDept || !selectedDoc || !chiefComplaint) {
+    if (!selectedPatient || !selectedDoc || !chiefComplaint) {
       toast('Please enter a chief complaint', 'warning');
       return;
     }
@@ -132,7 +134,7 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
     try {
       const { visit, invoice } = await createVisit({
         patient_id: selectedPatient.id,
-        department_id: selectedDept.id,
+        department_id: selectedDoc.department_id || 1,
         doctor_id: selectedDoc.id,
         chief_complaint: chiefComplaint,
         consultation_fee: selectedDoc.consultation_fee,
@@ -156,11 +158,6 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
     }
   };
 
-  // Filter doctors based on department
-  const filteredDoctors = doctors.filter(
-    (d) => selectedDept && d.department_id === selectedDept.id
-  );
-
   return (
     <div className="space-y-6 max-w-3xl mx-auto font-body text-zinc-700">
       {/* Visual Stepper tracker */}
@@ -176,17 +173,13 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
           <span className="text-zinc-300">→</span>
           <span className={`px-2 py-0.5 rounded-full ${currentStep === 'confirm_patient' ? 'bg-primary text-white' : 'bg-zinc-100 text-zinc-550'}`}>Confirm</span>
           <span className="text-zinc-300">→</span>
-          <span className={`px-2 py-0.5 rounded-full ${currentStep === 'select_department' ? 'bg-primary text-white' : 'bg-zinc-100 text-zinc-550'}`}>Department</span>
-          <span className="text-zinc-300">→</span>
-          <span className={`px-2 py-0.5 rounded-full ${currentStep === 'select_doctor' ? 'bg-primary text-white' : 'bg-zinc-100 text-zinc-550'}`}>Doctor</span>
-          <span className="text-zinc-300">→</span>
           <span className={`px-2 py-0.5 rounded-full ${currentStep === 'visit_details' ? 'bg-primary text-white' : 'bg-zinc-100 text-zinc-550'}`}>Details</span>
         </div>
       </div>
 
       {/* STEP 1: Search Patient */}
       {currentStep === 'search_patient' && (
-        <Card className="border border-zinc-150/70 shadow-sm bg-white rounded-xl">
+        <Card className="border border-zinc-150/70 shadow-sm bg-white rounded-xl !overflow-visible">
           <CardContent className="p-6 space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-zinc-800 font-heading">
               <Search className="h-4.5 w-4.5 text-primary" />
@@ -245,6 +238,37 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
             {searchQuery && !isSearching && searchResults.length === 0 && (
               <p className="text-xs text-zinc-400 italic">No matching patients. Type phone or full name to check details.</p>
             )}
+
+            {/* Recent Patients Quick Select */}
+            {!searchQuery && recentPatients.length > 0 && (
+              <div className="pt-4 border-t border-zinc-100">
+                <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2.5">
+                  Or Quick Select Recent Patient
+                </span>
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  {recentPatients.map((pat) => (
+                    <button
+                      key={pat.id}
+                      type="button"
+                      onClick={() => handlePatientSelect(pat)}
+                      className="p-3 border border-zinc-200 rounded-xl text-left hover:border-primary/40 hover:bg-primary/5 transition-all flex items-center justify-between cursor-pointer group bg-zinc-50/20"
+                    >
+                      <div className="min-w-0">
+                        <span className="font-bold text-zinc-800 text-xs block group-hover:text-primary transition-colors">
+                          {pat.first_name} {pat.last_name || ''}
+                        </span>
+                        <span className="text-[10px] text-zinc-400 font-semibold block mt-0.5">
+                          {pat.phone} • {pat.gender} • {pat.age}y
+                        </span>
+                      </div>
+                      <span className="font-mono text-[9px] font-bold text-zinc-400 bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 rounded">
+                        {pat.patient_code}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -293,7 +317,7 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
               </button>
               <button
                 type="button"
-                onClick={() => setCurrentStep('select_department')}
+                onClick={() => setCurrentStep('visit_details')}
                 className="h-9 px-4 bg-cta hover:opacity-90 text-white rounded-lg text-sm font-semibold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 Confirm & Proceed
@@ -304,124 +328,8 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
         </Card>
       )}
 
-      {/* STEP 3: Select Department */}
-      {currentStep === 'select_department' && (
-        <Card className="border border-zinc-150/70 shadow-sm bg-white rounded-xl">
-          <CardContent className="p-6 space-y-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-zinc-800 font-heading">
-              <Activity className="h-4.5 w-4.5 text-primary" />
-              <span>Select Department</span>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              {departments.map((dept) => (
-                <button
-                  key={dept.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedDept(dept);
-                    setSelectedDoc(null); // clear doctor if dept changes
-                    setCurrentStep('select_doctor');
-                  }}
-                  className={`p-4 border rounded-xl text-left transition-all flex items-center justify-between cursor-pointer ${
-                    selectedDept?.id === dept.id
-                      ? 'border-primary bg-primary/5 shadow-xs'
-                      : 'border-zinc-200 hover:border-primary/45 hover:bg-primary/5/10'
-                  }`}
-                >
-                  <div>
-                    <span className="font-bold text-zinc-900 text-sm font-heading">{dept.department_name}</span>
-                    <p className="text-zinc-400 text-xs mt-1 font-semibold">Clinical OPD services</p>
-                  </div>
-                  {selectedDept?.id === dept.id && (
-                    <div className="p-1 rounded-full bg-primary text-white">
-                      <Check className="h-3 w-3" />
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex justify-start pt-2">
-              {!initialPatient && (
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep('confirm_patient')}
-                  className="h-9 px-4 border border-zinc-200 hover:bg-zinc-50 text-zinc-700 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Back
-                </button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* STEP 4: Select Doctor */}
-      {currentStep === 'select_doctor' && selectedDept && (
-        <Card className="border border-zinc-150/70 shadow-sm bg-white rounded-xl">
-          <CardContent className="p-6 space-y-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-zinc-800 font-heading">
-              <Stethoscope className="h-4.5 w-4.5 text-primary" />
-              <span>Select Practitioner for {selectedDept.department_name}</span>
-            </div>
-
-            {filteredDoctors.length === 0 ? (
-              <div className="text-center py-8 bg-zinc-50 rounded-xl border border-dashed border-zinc-200">
-                <p className="text-zinc-500 text-xs">No active doctors configured for this department.</p>
-              </div>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {filteredDoctors.map((doc) => (
-                  <button
-                    key={doc.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedDoc(doc);
-                      setCurrentStep('visit_details');
-                    }}
-                    className={`p-4 border rounded-xl text-left transition-all flex items-center justify-between cursor-pointer ${
-                      selectedDoc?.id === doc.id
-                        ? 'border-primary bg-primary/5 shadow-xs'
-                        : 'border-zinc-200 hover:border-primary/45 hover:bg-primary/5/10'
-                    }`}
-                  >
-                    <div>
-                      <span className="font-bold text-zinc-900 text-sm font-heading">
-                        {doc.profiles?.full_name || 'Dr. Practitioner'}
-                      </span>
-                      <span className="block text-zinc-450 text-xs mt-0.5 font-semibold">{doc.qualification || 'MBBS'}</span>
-                      <span className="block text-cta font-bold text-xs mt-2">
-                        OPD Fee: ₹{doc.consultation_fee}
-                      </span>
-                    </div>
-                    {selectedDoc?.id === doc.id && (
-                      <div className="p-1 rounded-full bg-primary text-white">
-                        <Check className="h-3 w-3" />
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div className="flex justify-start pt-2">
-              <button
-                type="button"
-                onClick={() => setCurrentStep('select_department')}
-                className="h-9 px-4 border border-zinc-200 hover:bg-zinc-50 text-zinc-700 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Departments
-              </button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* STEP 5: Visit Details */}
-      {currentStep === 'visit_details' && selectedPatient && selectedDept && selectedDoc && (
+      {currentStep === 'visit_details' && selectedPatient && selectedDoc && (
         <Card className="border border-zinc-150/70 shadow-sm bg-white rounded-xl">
           <CardContent className="p-6 space-y-5">
             <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 text-sm font-semibold text-zinc-800 font-heading">
@@ -436,10 +344,6 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
                 <div>
                   <span className="text-xs text-zinc-400 font-semibold block font-heading">Patient</span>
                   <span className="font-bold text-zinc-800">{selectedPatient.first_name} {selectedPatient.last_name || ''}</span>
-                </div>
-                <div>
-                  <span className="text-xs text-zinc-400 font-semibold block font-heading">Department</span>
-                  <span className="font-semibold text-zinc-800">{selectedDept.department_name}</span>
                 </div>
                 <div>
                   <span className="text-xs text-zinc-400 font-semibold block font-heading">Doctor</span>
@@ -472,7 +376,7 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
             <div className="flex justify-between pt-2">
               <button
                 type="button"
-                onClick={() => setCurrentStep('select_doctor')}
+                onClick={() => setCurrentStep('confirm_patient')}
                 disabled={isSubmitting}
                 className="h-9 px-4 border border-zinc-200 hover:bg-zinc-50 text-zinc-700 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
               >
