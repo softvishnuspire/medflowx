@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import TrueUpLogo from '@/components/ui/trueup-logo';
 import {
   Stethoscope,
   Shield,
@@ -138,19 +137,28 @@ export default function AuthPage() {
 
   return (
     <div className="relative min-h-screen bg-[#040812] flex items-center justify-center p-4 md:p-6 overflow-hidden select-none font-body">
-      {/* Background radial glowing circles matching the screenshot backdrop */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-600/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-600/5 rounded-full blur-[140px] pointer-events-none" />
+      {/* Background brushed gradient glowing circles */}
+      <div className="absolute top-1/10 left-1/10 w-[550px] h-[550px] bg-gradient-to-tr from-teal-500/20 to-emerald-500/5 rounded-full blur-[130px] pointer-events-none animate-pulse" />
+      <div className="absolute top-1/3 right-1/10 w-[600px] h-[600px] bg-gradient-to-bl from-violet-600/15 to-indigo-600/5 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute -bottom-20 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-cyan-500/20 to-teal-500/10 rounded-full blur-[110px] pointer-events-none" />
+      <div className="absolute bottom-1/3 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-emerald-500/10 rounded-full blur-[160px] pointer-events-none" />
 
       {/* Main card grid */}
       <div className="relative z-10 w-full max-w-4xl bg-[#0a0d16]/95 border border-[#1b253b]/40 rounded-[24px] shadow-[0_24px_80px_rgba(0,0,0,0.65)] overflow-hidden flex flex-col md:flex-row backdrop-blur-md">
         
-        {/* Left Panel: Welcome and TrueUp Media Branding */}
+        {/* Left Panel: Welcome and MedflowX Branding */}
         <div className="md:w-[42%] bg-[#080b13] p-10 md:p-12 flex flex-col justify-center border-b md:border-b-0 md:border-r border-[#1b253b]/30">
           <div className="flex flex-col items-center md:items-start text-center md:text-left">
             
-            {/* Custom styled logo box container */}
-            <TrueUpLogo className="w-52 h-24 mb-10 shadow-inner" />
+            {/* MedflowX Logo Brand Box */}
+            <div className="flex items-center gap-2.5 mb-10 p-3 bg-[#0a0d16] border border-[#1b253b]/50 rounded-2xl shadow-inner w-fit">
+              <div className="p-1.5 rounded-xl bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                <Stethoscope className="h-6 w-6" />
+              </div>
+              <span className="font-extrabold text-white tracking-tight text-xl font-heading">
+                Medflow<span className="text-emerald-500">X</span>
+              </span>
+            </div>
             
             <h2 className="text-white text-3xl font-extrabold tracking-tight font-heading leading-tight">
               Welcome Back
