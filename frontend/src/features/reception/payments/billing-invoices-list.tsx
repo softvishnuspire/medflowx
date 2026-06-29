@@ -102,7 +102,7 @@ export default function BillingInvoicesList({ onSelectInvoice }: BillingInvoices
                         <TableCell className="text-xs text-zinc-700 font-medium">
                           <div className="font-semibold text-zinc-800">{inv.visits?.doctors?.profiles?.full_name || 'Dr. Practitioner'}</div>
                           <span className="text-[10px] text-zinc-405 font-semibold font-heading block mt-0.5">
-                            {inv.visits?.departments?.department_name || 'General OPD'}
+                            {inv.visits?.doctors?.departments?.department_name || 'General OPD'}
                           </span>
                         </TableCell>
                         <TableCell className="font-bold text-zinc-900">

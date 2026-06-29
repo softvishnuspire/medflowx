@@ -103,7 +103,7 @@ export async function getPatientById(id: number) {
 
   const { data: visits, error: visitsError } = await supabase
     .from('visits')
-    .select('*, doctors(id, qualification, consultation_fee, profiles!user_id(full_name)), departments(department_name)')
+    .select('*, doctors(id, qualification, consultation_fee, profiles!user_id(full_name), departments(department_name))')
     .eq('patient_id', id)
     .order('visit_date', { ascending: false });
 

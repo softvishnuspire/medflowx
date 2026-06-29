@@ -15,7 +15,8 @@ import {
   Printer,
   X,
   History,
-  RotateCw
+  RotateCw,
+  Send
 } from 'lucide-react';
 
 
@@ -157,21 +158,7 @@ export default function WorkspaceView({
   const [quantity, setQuantity] = useState(10);
   const [instructions, setInstructions] = useState('Take after meals');
   
-  // PDF / Print Prescription states
-  const [showPrintModal, setShowPrintModal] = useState(false);
-  const [printedPrescriptionData, setPrintedPrescriptionData] = useState<{
-    visit: Visit;
-    doctor: Doctor;
-    diagnosis: {
-      symptoms: string;
-      clinical_findings: string;
-      diagnosis: string;
-      doctor_notes: string;
-      follow_up_advice: string;
-    };
-    prescriptionItems: PrescriptionItemInput[];
-    followUpDate: string;
-  } | null>(null);
+  // Print flow states removed
 
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -414,7 +401,7 @@ export default function WorkspaceView({
       }
 
       // 4. Update Visit Status
-      const visitStatusUpdate = prescribedItems.length > 0 ? 'Sent to Pharmacy' : 'Closed';
+      const visitStatusUpdate = 'Sent to Pharmacy';
       const { error: visitErr } = await supabase
         .from('visits')
         .update({ status: visitStatusUpdate })
@@ -426,27 +413,11 @@ export default function WorkspaceView({
       await supabase.from('visit_status_history').insert({
         visit_id: selectedVisit.id,
         status: visitStatusUpdate,
-        remarks: `Consultation complete. ${prescribedItems.length > 0 ? 'Sent to pharmacy for medicine collection.' : 'Visit closed.'}`,
+        remarks: 'Consultation complete. Sent to pharmacy queue.',
         changed_by: selectedDoctor.user_id
       });
 
-      // 6. Set Printable Prescription Data
-      setPrintedPrescriptionData({
-        visit: selectedVisit,
-        doctor: selectedDoctor,
-        diagnosis: {
-          symptoms,
-          clinical_findings: clinicalFindings,
-          diagnosis,
-          doctor_notes: doctorNotes,
-          follow_up_advice: followUpAdvice
-        },
-        prescriptionItems: prescribedItems,
-        followUpDate: followUpDate
-      });
-      setShowPrintModal(true);
-
-      setSuccessMsg('Consultation completed successfully!');
+      setSuccessMsg('Consultation completed successfully and pushed to pharmacy!');
       socket.emit('update-queue', { visitId: selectedVisit.id, status: visitStatusUpdate });
 
       resetConsultationForm();
@@ -997,8 +968,8 @@ export default function WorkspaceView({
                         : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
                     }`}
                   >
-                    {saving ? <RotateCw className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
-                    Complete & Print Rx
+                    {saving ? <RotateCw className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                    Push to Pharmacy
                   </button>
                 </div>
               </div>
@@ -1092,148 +1063,6 @@ export default function WorkspaceView({
           </div>
         </main>
       )}
-
-      {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ PRINT MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      {showPrintModal && printedPrescriptionData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm print:relative print:inset-auto print:bg-white print:p-0">
-          <div className="bg-white text-zinc-800 w-[720px] max-h-[90vh] rounded-2xl shadow-2xl border border-zinc-200 overflow-hidden flex flex-col print:shadow-none print:border-none print:w-full print:max-h-full print:rounded-none">
-            
-            {/* Modal header */}
-            <div className="flex items-center justify-between bg-zinc-50 border-b border-zinc-200 px-6 py-4 print:hidden">
-              <h3 className="font-bold text-zinc-800 flex items-center gap-2 text-sm">
-                <Printer className="h-4 w-4 text-primary" /> Prescription Ready
-              </h3>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => window.print()}
-                  className="bg-cta hover:bg-cta/90 text-white font-bold text-xs py-2 px-4 rounded-lg flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Printer className="h-3.5 w-3.5" /> Print
-                </button>
-                <button
-                  onClick={() => { setShowPrintModal(false); setPrintedPrescriptionData(null); }}
-                  className="text-zinc-400 hover:text-zinc-700 p-2 rounded-lg hover:bg-zinc-100 transition-colors cursor-pointer"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Print body */}
-            <div className="flex-1 overflow-y-auto p-8 print:p-0 print:overflow-visible">
-              <div className="font-serif border-2 border-zinc-300 p-6 rounded-lg min-h-[500px] flex flex-col justify-between print:border-none print:p-0">
-                
-                {/* Header */}
-                <div>
-                  <div className="flex items-start justify-between border-b-2 border-zinc-800 pb-4">
-                    <div>
-                      <h2 className="text-xl font-extrabold text-zinc-900 font-sans tracking-wide">MEDFLOWX CLINIC</h2>
-                      <p className="text-[10px] text-zinc-500 font-sans mt-0.5">123 Health Care Avenue, Gachibowli, Hyderabad</p>
-                      <p className="text-[10px] text-zinc-500 font-sans">Contact: +91 40 9876543 | info@medflowx.com</p>
-                    </div>
-                    <div className="text-right">
-                      <h3 className="font-bold text-zinc-800 text-sm font-sans">{printedPrescriptionData.doctor.profiles?.full_name}</h3>
-                      <p className="text-[10px] text-zinc-500 font-sans">{printedPrescriptionData.doctor.qualification}</p>
-                      <p className="text-[10px] text-primary font-semibold font-sans">General Medicine</p>
-                    </div>
-                  </div>
-
-                  {/* Patient info */}
-                  <div className="grid grid-cols-2 gap-4 bg-zinc-50 border-b border-zinc-200 px-4 py-3 text-xs font-sans mt-3">
-                    <div className="space-y-1">
-                      <p><strong>Patient:</strong> {printedPrescriptionData.visit.patients?.first_name} {printedPrescriptionData.visit.patients?.last_name}</p>
-                      <p><strong>Age/Gender:</strong> {printedPrescriptionData.visit.patients?.age} Yrs / {printedPrescriptionData.visit.patients?.gender}</p>
-                      <p><strong>Code:</strong> <span className="font-mono">{printedPrescriptionData.visit.patients?.patient_code}</span></p>
-                    </div>
-                    <div className="space-y-1 text-right">
-                      <p><strong>Date:</strong> {new Date(printedPrescriptionData.visit.visit_date).toLocaleDateString()}</p>
-                      <p><strong>Visit:</strong> <span className="font-mono">{printedPrescriptionData.visit.visit_number}</span></p>
-                      <p className="text-rose-700"><strong>Allergies:</strong> {printedPrescriptionData.visit.patients?.allergies || 'N/A'}</p>
-                    </div>
-                  </div>
-
-                  {/* Diagnosis */}
-                  <div className="mt-4 space-y-1.5 font-sans text-xs">
-                    <p><strong>Complaint:</strong> {printedPrescriptionData.visit.chief_complaint || 'None'}</p>
-                    <p><strong>Findings:</strong> {printedPrescriptionData.diagnosis.clinical_findings || 'N/A'}</p>
-                    <p className="border-b border-zinc-200 pb-2"><strong>Diagnosis:</strong> <span className="font-bold text-zinc-900">{printedPrescriptionData.diagnosis.diagnosis}</span></p>
-                  </div>
-
-                  {/* Rx Items */}
-                  <div className="mt-4 font-sans">
-                    <div className="text-xl font-bold font-serif mb-2 italic">Rx</div>
-                    {printedPrescriptionData.prescriptionItems.length === 0 ? (
-                      <p className="text-xs text-zinc-500 italic p-3 bg-zinc-50 rounded">No specific medicines prescribed.</p>
-                    ) : (
-                      <table className="w-full text-xs text-left border-collapse">
-                        <thead>
-                          <tr className="border-b-2 border-zinc-300 text-zinc-500 uppercase text-[9px] tracking-wider">
-                            <th className="py-2 w-6">#</th>
-                            <th className="py-2">Medicine</th>
-                            <th className="py-2 w-20">Dosage</th>
-                            <th className="py-2 w-24">Frequency</th>
-                            <th className="py-2 w-20">Duration</th>
-                            <th className="py-2 w-10 text-center">Qty</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {printedPrescriptionData.prescriptionItems.map((item, idx) => (
-                            <tr key={idx} className="border-b border-zinc-200">
-                              <td className="py-2 text-zinc-400">{idx + 1}</td>
-                              <td className="py-2">
-                                <span className="font-bold text-zinc-800">{item.medicineName}</span>
-                                {item.instructions && <span className="block text-[10px] text-primary italic mt-0.5">* {item.instructions}</span>}
-                              </td>
-                              <td className="py-2 text-zinc-600 font-mono">{item.dosage}</td>
-                              <td className="py-2 text-zinc-600">{item.frequency}</td>
-                              <td className="py-2 text-zinc-600">{item.duration}</td>
-                              <td className="py-2 text-zinc-800 text-center font-bold">{item.quantity}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-
-                  {/* Advice */}
-                  {printedPrescriptionData.diagnosis.doctor_notes && (
-                    <div className="mt-4 font-sans text-xs bg-zinc-50 p-3 rounded border border-zinc-200">
-                      <strong>Advice:</strong> {printedPrescriptionData.diagnosis.doctor_notes}
-                    </div>
-                  )}
-                </div>
-
-                {/* Footer */}
-                <div className="mt-10 font-sans pt-4 border-t border-zinc-200">
-                  <div className="flex justify-between items-end">
-                    <div>
-                      {printedPrescriptionData.followUpDate && (
-                        <p className="text-xs text-zinc-600 bg-zinc-50 px-3 py-1.5 rounded border border-zinc-200 inline-block">
-                          <strong>Follow-up:</strong> {new Date(printedPrescriptionData.followUpDate).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-center w-44 border-t border-zinc-300 pt-2">
-                      <p className="text-xs font-bold text-zinc-800">{printedPrescriptionData.doctor.profiles?.full_name}</p>
-                      <p className="text-[9px] text-zinc-400 uppercase tracking-widest mt-0.5">Registered Practitioner</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Print CSS */}
-      <style>{`
-        @media print {
-          body * { visibility: hidden; background: transparent !important; color: #000 !important; }
-          .print\\:relative, .print\\:relative * { visibility: visible; }
-          .print\\:relative { position: absolute; left: 0; top: 0; width: 100%; height: 100%; padding: 0; margin: 0; }
-          .print\\:hidden { display: none !important; }
-        }
-      `}</style>
     </div>
   );
 }
