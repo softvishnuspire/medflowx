@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 interface DialogProps {
   isOpen: boolean;
@@ -41,7 +42,7 @@ export function Dialog({
     '4xl': 'max-w-4xl',
   };
 
-  return (
+  const dialogElement = (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto">
       {/* Overlay */}
       <div
@@ -93,6 +94,8 @@ export function Dialog({
       </div>
     </div>
   );
+
+  return createPortal(dialogElement, document.body);
 }
 
 interface ConfirmationDialogProps {
