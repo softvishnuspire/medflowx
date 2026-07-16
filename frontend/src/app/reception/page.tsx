@@ -28,6 +28,8 @@ import {
   User,
   LogOut,
   Stethoscope,
+  Menu,
+  X
 } from 'lucide-react';
 
 type Tab =
@@ -42,6 +44,7 @@ type Tab =
 
 export default function ReceptionPage() {
   const [currentUser, setCurrentUser] = useState({ name: 'Receptionist Desk', email: 'Desk Terminal #01', avatarCode: 'RD' });
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     socket.connect();
@@ -121,15 +124,34 @@ export default function ReceptionPage() {
 
   return (
     <div className="reception-theme font-body text-text-custom bg-bg-custom flex h-screen overflow-hidden">
+      {/* Mobile Sidebar Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-zinc-900/40 backdrop-blur-xs md:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-white border-r border-zinc-150 flex flex-col justify-between shrink-0 shadow-sm">
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-zinc-150 flex flex-col justify-between shrink-0 shadow-sm transition-transform duration-300 md:static md:translate-x-0 ${
+        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
         <div className="flex flex-col flex-1">
           {/* Logo Brand */}
-          <div className="h-16 px-6 border-b border-zinc-100 flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-primary text-white shadow-inner">
-              <Stethoscope className="h-5 w-5" />
+          <div className="h-16 px-6 border-b border-zinc-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-primary text-white shadow-inner">
+                <Stethoscope className="h-5 w-5" />
+              </div>
+              <span className="font-extrabold text-zinc-900 tracking-tight text-lg font-heading">Medflow<span className="text-primary">X</span></span>
             </div>
-            <span className="font-extrabold text-zinc-900 tracking-tight text-lg font-heading">Medflow<span className="text-primary">X</span></span>
+            {/* Mobile close button */}
+            <button 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="p-1.5 hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 rounded-lg md:hidden"
+            >
+              <X className="h-4.5 w-4.5" />
+            </button>
           </div>
 
           {/* Navigation Links */}
@@ -148,6 +170,7 @@ export default function ReceptionPage() {
                     if (item.id === 'visit') setPatientForVisit(null);
                     if (item.id === 'payments') setInvoiceForPayment(null);
                     setActiveTab(item.id);
+                    setIsMobileMenuOpen(false);
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
                     isActive
@@ -166,7 +189,10 @@ export default function ReceptionPage() {
         {/* Footer Actions */}
         <div className="p-4 border-t border-zinc-100 space-y-1 bg-zinc-50/50">
           <button
-            onClick={() => setActiveTab('profile')}
+            onClick={() => {
+              setActiveTab('profile');
+              setIsMobileMenuOpen(false);
+            }}
             className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
               activeTab === 'profile'
                 ? 'bg-primary/10 text-primary font-semibold border-l-2 border-primary pl-3.5'
@@ -190,8 +216,21 @@ export default function ReceptionPage() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-hidden bg-bg-custom">
         {/* Top Header Bar */}
-        <header className="h-16 border-b border-zinc-150 bg-white px-8 flex items-center justify-between shrink-0 shadow-sm">
-          <div className="text-xs text-zinc-400 font-semibold uppercase tracking-wider font-heading">
+        <header className="h-16 border-b border-zinc-150 bg-white px-4 md:px-8 flex items-center justify-between shrink-0 shadow-sm z-30">
+          
+          <div className="flex items-center gap-3 md:hidden">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-500"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <div className="text-xs text-zinc-400 font-semibold uppercase tracking-wider font-heading">
+              Reception Desk Portal
+            </div>
+          </div>
+
+          <div className="hidden md:block text-xs text-zinc-400 font-semibold uppercase tracking-wider font-heading">
             Reception Desk Portal
           </div>
           
@@ -207,7 +246,7 @@ export default function ReceptionPage() {
         </header>
 
         {/* Inner sub-view container */}
-        <div className="flex-1 overflow-y-auto p-8 max-w-6xl w-full mx-auto">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 max-w-6xl w-full mx-auto">
           {activeTab === 'dashboard' && <DashboardView />}
           
           {activeTab === 'patients' && (

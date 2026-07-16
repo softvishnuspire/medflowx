@@ -267,22 +267,22 @@ export default function ReportsView() {
         </div>
 
         {/* Date Selector */}
-        <Card className="border border-zinc-150/60 bg-white rounded-xl shadow-xs shrink-0 self-start sm:self-auto">
-          <CardContent className="p-3 flex items-center gap-3">
-            <Calendar className="h-4 w-4 text-zinc-400" />
-            <div className="flex items-center gap-2 text-xs">
+        <Card className="border border-zinc-150/60 bg-white rounded-xl shadow-xs shrink-0 self-start sm:self-auto w-full sm:w-auto">
+          <CardContent className="p-3 flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-start gap-2 sm:gap-3">
+            <Calendar className="h-4 w-4 text-zinc-400 shrink-0" />
+            <div className="flex items-center gap-2 text-xs overflow-hidden">
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="border-0 focus:ring-0 focus:outline-none text-zinc-650 font-semibold p-0.5 w-[110px] cursor-pointer"
+                className="border-0 focus:ring-0 focus:outline-none text-zinc-650 font-semibold p-0.5 w-[95px] sm:w-[110px] cursor-pointer"
               />
-              <span className="text-zinc-300 font-bold">to</span>
+              <span className="text-zinc-300 font-bold shrink-0">to</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="border-0 focus:ring-0 focus:outline-none text-zinc-650 font-semibold p-0.5 w-[110px] cursor-pointer"
+                className="border-0 focus:ring-0 focus:outline-none text-zinc-650 font-semibold p-0.5 w-[95px] sm:w-[110px] cursor-pointer"
               />
             </div>
             <button
@@ -296,10 +296,10 @@ export default function ReportsView() {
       </div>
 
       {/* Reports Directory Menu */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <button
           onClick={() => setActiveReportTab('revenue')}
-          className={`p-4 rounded-xl border transition-all text-left flex flex-col justify-between h-28 cursor-pointer ${
+          className={`p-4 rounded-xl border transition-all text-left flex flex-col justify-between min-h-[7rem] cursor-pointer ${
             activeReportTab === 'revenue'
               ? 'bg-primary/10 border-primary text-primary shadow-sm'
               : 'bg-white border-zinc-150/60 hover:bg-zinc-50/50'
@@ -316,7 +316,7 @@ export default function ReportsView() {
 
         <button
           onClick={() => setActiveReportTab('patients')}
-          className={`p-4 rounded-xl border transition-all text-left flex flex-col justify-between h-28 cursor-pointer ${
+          className={`p-4 rounded-xl border transition-all text-left flex flex-col justify-between min-h-[7rem] cursor-pointer ${
             activeReportTab === 'patients'
               ? 'bg-primary/10 border-primary text-primary shadow-sm'
               : 'bg-white border-zinc-150/60 hover:bg-zinc-50/50'
@@ -333,7 +333,7 @@ export default function ReportsView() {
 
         <button
           onClick={() => setActiveReportTab('doctors')}
-          className={`p-4 rounded-xl border transition-all text-left flex flex-col justify-between h-28 cursor-pointer ${
+          className={`p-4 rounded-xl border transition-all text-left flex flex-col justify-between min-h-[7rem] cursor-pointer ${
             activeReportTab === 'doctors'
               ? 'bg-primary/10 border-primary text-primary shadow-sm'
               : 'bg-white border-zinc-150/60 hover:bg-zinc-50/50'
@@ -350,7 +350,7 @@ export default function ReportsView() {
 
         <button
           onClick={() => setActiveReportTab('payments')}
-          className={`p-4 rounded-xl border transition-all text-left flex flex-col justify-between h-28 cursor-pointer ${
+          className={`p-4 rounded-xl border transition-all text-left flex flex-col justify-between min-h-[7rem] cursor-pointer ${
             activeReportTab === 'payments'
               ? 'bg-primary/10 border-primary text-primary shadow-sm'
               : 'bg-white border-zinc-150/60 hover:bg-zinc-50/50'
@@ -372,7 +372,7 @@ export default function ReportsView() {
         <Card className="md:col-span-2 border border-zinc-150/60 bg-white rounded-xl shadow-sm overflow-hidden flex flex-col justify-between">
           <div>
             {/* Table Header Controls */}
-            <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+            <div className="px-6 py-4 border-b border-zinc-100 flex flex-col md:flex-row md:items-center gap-4 justify-between bg-zinc-50/50">
               <h3 className="text-sm font-bold text-zinc-800 uppercase tracking-wider font-heading">
                 {activeReportTab === 'revenue' && 'Daily Revenue Ledger'}
                 {activeReportTab === 'patients' && 'Patient Enrollments Registry'}

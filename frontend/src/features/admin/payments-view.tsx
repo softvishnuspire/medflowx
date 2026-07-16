@@ -90,7 +90,7 @@ export default function PaymentsView() {
   return (
     <div className="space-y-6 animate-slide-in text-zinc-705 font-body">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 tracking-tight font-heading">Payments & Revenue Audit</h1>
           <p className="text-sm text-zinc-500 mt-1">Audit daily consultation collections, payment status registers, and pending balances.</p>

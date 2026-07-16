@@ -84,7 +84,7 @@ export default function PatientDetailView({ patientId, onBack }: PatientDetailVi
   return (
     <div className="space-y-6 animate-slide-in text-zinc-705 font-body">
       {/* Top Navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <button
           onClick={onBack}
           className="inline-flex items-center gap-2 text-xs font-bold text-zinc-550 hover:text-primary hover:border-primary/30 bg-white border border-zinc-200 px-3 py-1.5 rounded-lg transition-all shadow-xs cursor-pointer hover:scale-[1.01]"
@@ -190,7 +190,7 @@ export default function PatientDetailView({ patientId, onBack }: PatientDetailVi
       {/* Medical History (Read Only Warnings) */}
       <Card className="border border-zinc-150/60 bg-white rounded-xl shadow-xs">
         <CardContent className="p-6">
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-3 mb-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-100 pb-3 mb-4 gap-2">
             <h3 className="text-sm font-bold text-zinc-800 flex items-center gap-2 font-heading">
               <Activity className="h-4.5 w-4.5 text-zinc-400" />
               Medical History Profile
@@ -220,7 +220,7 @@ export default function PatientDetailView({ patientId, onBack }: PatientDetailVi
 
       {/* Visits Log */}
       <Card className="border border-zinc-150/60 bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+        <div className="px-6 py-4 border-b border-zinc-100 flex flex-col md:flex-row md:items-center justify-between bg-zinc-50/50 gap-2">
           <h3 className="text-sm font-bold text-zinc-800 flex items-center gap-2 font-heading">
             <CalendarDays className="h-4.5 w-4.5 text-zinc-400" />
             Clinical Visits Log ({visits.length})
@@ -267,7 +267,7 @@ export default function PatientDetailView({ patientId, onBack }: PatientDetailVi
 
       {/* Payments Log */}
       <Card className="border border-zinc-150/60 bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+        <div className="px-6 py-4 border-b border-zinc-100 flex flex-col md:flex-row md:items-center justify-between bg-zinc-50/50 gap-2">
           <h3 className="text-sm font-bold text-zinc-800 flex items-center gap-2 font-heading">
             <CreditCard className="h-4.5 w-4.5 text-zinc-400" />
             Consultation Billing & Payments Log ({payments.length})

@@ -58,7 +58,7 @@ export default function QueueView() {
 
   return (
     <div className="space-y-6 font-body text-zinc-700">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 tracking-tight font-heading">Today's Live Queue</h1>
           <p className="text-sm text-zinc-500 mt-1">Real-time status updates of visits scheduled for today.</p>

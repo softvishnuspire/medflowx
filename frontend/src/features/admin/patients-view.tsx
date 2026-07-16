@@ -48,7 +48,7 @@ export default function PatientsView({ onViewProfile }: PatientsViewProps) {
   return (
     <div className="space-y-6 animate-slide-in text-zinc-705 font-body">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 tracking-tight font-heading">Patient Directory</h1>
           <p className="text-sm text-zinc-500 mt-1">Read-only listing of all patients enrolled in the clinic database.</p>
@@ -57,7 +57,7 @@ export default function PatientsView({ onViewProfile }: PatientsViewProps) {
 
       {/* Filter Bar */}
       <Card className="border border-zinc-150/60 bg-white rounded-xl shadow-xs">
-        <CardContent className="p-4 flex gap-4 items-center justify-between">
+        <CardContent className="p-4 flex flex-col md:flex-row gap-4 md:items-center justify-between">
           <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
             <input

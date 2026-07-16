@@ -247,7 +247,7 @@ export default function PatientListView({ onViewProfile, onCreateVisit }: Patien
               </Table>
 
               {/* Pagination controls */}
-              <div className="px-6 py-4 bg-zinc-50/50 border-t border-zinc-100 flex items-center justify-between">
+              <div className="px-6 py-4 bg-zinc-50/50 border-t border-zinc-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <span className="text-xs text-zinc-500">
                   Showing <span className="font-semibold text-zinc-700">{patients.length}</span> of{' '}
                   <span className="font-semibold text-zinc-700">{total}</span> patient records

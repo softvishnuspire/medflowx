@@ -142,7 +142,7 @@ export default function UsersView() {
 
       {/* Filters Bar */}
       <Card className="border border-zinc-150/60 bg-white rounded-xl shadow-xs">
-        <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+        <CardContent className="p-4 flex flex-col md:flex-row gap-4 md:items-center justify-between">
           <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
             <input
