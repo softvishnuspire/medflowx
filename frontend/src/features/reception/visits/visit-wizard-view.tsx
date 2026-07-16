@@ -8,7 +8,8 @@ import {
   getDepartments, 
   getDoctors, 
   searchPatients, 
-  createVisit 
+  createVisit,
+  checkIsFirstVisit
 } from '@/services/reception';
 import { useToast } from '@/components/ui/toast';
 import { useKeyboardNav } from '@/hooks/use-keyboard-nav';
@@ -43,6 +44,7 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<Doctor | null>(null);
   const [chiefComplaint, setChiefComplaint] = useState('');
+  const [isFirstVisit, setIsFirstVisit] = useState(true);
   
   // Data lists
   const [searchResults, setSearchResults] = useState<Patient[]>([]);
@@ -89,6 +91,26 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
       setCurrentStep('visit_details');
     }
   }, [initialPatient]);
+
+  // Check if selected patient is a first-time visitor
+  useEffect(() => {
+    if (!selectedPatient) {
+      setIsFirstVisit(true);
+      return;
+    }
+
+    const checkPatientVisitsStatus = async () => {
+      try {
+        const isFirst = await checkIsFirstVisit(selectedPatient.id);
+        setIsFirstVisit(isFirst);
+      } catch (err) {
+        console.error('Failed to check patient visits status:', err);
+        setIsFirstVisit(true);
+      }
+    };
+
+    checkPatientVisitsStatus();
+  }, [selectedPatient]);
 
   // Global search trigger
   const triggerSearch = async (val: string) => {
@@ -137,7 +159,7 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
         department_id: selectedDoc.department_id || 1,
         doctor_id: selectedDoc.id,
         chief_complaint: chiefComplaint,
-        consultation_fee: selectedDoc.consultation_fee,
+        consultation_fee: isFirstVisit ? selectedDoc.consultation_fee : 0,
       });
 
       toast('Visit scheduled successfully! Proceeding to billing...', 'success');
@@ -146,7 +168,7 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
       onVisitCreated(
         visit.id, 
         invoice.id, 
-        selectedDoc.consultation_fee, 
+        invoice.final_amount, 
         patName, 
         visit.visit_number
       );
@@ -351,7 +373,9 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
                 </div>
                 <div>
                   <span className="text-xs text-zinc-400 font-semibold block font-heading">Consultation Fee</span>
-                  <span className="font-bold text-cta text-lg">₹{selectedDoc.consultation_fee}</span>
+                  <span className="font-bold text-cta text-lg">
+                    {isFirstVisit ? `₹${selectedDoc.consultation_fee}` : '₹0 (Free Visit)'}
+                  </span>
                 </div>
               </div>
 

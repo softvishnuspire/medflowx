@@ -48,28 +48,6 @@ const ROLES: RoleOption[] = [
     icon: Users,
     badgeColor: 'bg-teal-600/10 border-teal-500/20 text-teal-400 shadow-[0_0_12px_rgba(13,148,136,0.15)]',
     iconColor: 'text-teal-400'
-  },
-  {
-    id: 'doctor',
-    name: 'Doctor / Consultant',
-    dbRoleName: 'Doctor',
-    description: 'Clinical queue & patient EHR',
-    path: '/doctor',
-    defaultEmail: 'varma@medflowx.com',
-    icon: Stethoscope,
-    badgeColor: 'bg-emerald-600/10 border-emerald-500/20 text-emerald-400 shadow-[0_0_12px_rgba(5,150,105,0.15)]',
-    iconColor: 'text-emerald-400'
-  },
-  {
-    id: 'pharmacy',
-    name: 'Pharmacist',
-    dbRoleName: 'Pharmacist',
-    description: 'Medication dispense & inventory logs',
-    path: '/pharmacy',
-    defaultEmail: 'alex@medflowx.com',
-    icon: HardDrive,
-    badgeColor: 'bg-amber-600/10 border-amber-500/20 text-amber-400 shadow-[0_0_12px_rgba(217,119,6,0.15)]',
-    iconColor: 'text-amber-400'
   }
 ];
 

@@ -43,7 +43,7 @@ export default function PaymentCollectionView({
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if ((paymentMethod === 'UPI' || paymentMethod === 'Card') && !transactionRef.trim()) {
+    if (amount > 0 && (paymentMethod === 'UPI' || paymentMethod === 'Card') && !transactionRef.trim()) {
       toast('Please enter a transaction reference number', 'warning');
       return;
     }
@@ -151,7 +151,11 @@ export default function PaymentCollectionView({
             <div className="text-center py-6 border border-zinc-200 rounded-xl bg-white shadow-inner">
               <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider block font-heading">Total Amount Due</span>
               <span className="text-4xl font-extrabold text-cta tracking-tight mt-1 inline-block">₹{amount}</span>
-              <span className="block text-[10px] text-zinc-400 mt-1.5 font-medium">Consultation fee only. Includes basic OPD taxes.</span>
+              {amount === 0 ? (
+                <span className="block text-[10px] text-emerald-600 mt-1.5 font-bold uppercase font-heading">Repeat Patient - Free Consultation</span>
+              ) : (
+                <span className="block text-[10px] text-zinc-400 mt-1.5 font-medium">Consultation fee only. Includes basic OPD taxes.</span>
+              )}
             </div>
 
             {/* Select Method */}
@@ -217,7 +221,7 @@ export default function PaymentCollectionView({
                 ) : (
                   <>
                     <FileCheck2 className="h-4.5 w-4.5" />
-                    Confirm Consultation Payment
+                    {amount === 0 ? 'Confirm Free Visit' : 'Confirm Consultation Payment'}
                   </>
                 )}
               </button>

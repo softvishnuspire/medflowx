@@ -223,6 +223,19 @@ export async function getDoctors() {
 }
 
 /**
+ * Check if a patient has any previous visits in the system.
+ */
+export async function checkIsFirstVisit(patientId: number): Promise<boolean> {
+  const { count, error } = await supabase
+    .from('visits')
+    .select('id', { count: 'exact', head: true })
+    .eq('patient_id', patientId);
+
+  if (error) throw error;
+  return (count || 0) === 0;
+}
+
+/**
  * Create visit and associate a pending invoice.
  */
 export async function createVisit(visitData: VisitFormValues) {
@@ -255,7 +268,8 @@ export async function createVisit(visitData: VisitFormValues) {
 
   if (visitError) throw visitError;
 
-  const fee = visitData.consultation_fee || 0;
+  const isFirst = await checkIsFirstVisit(visitData.patient_id);
+  const fee = isFirst ? (visitData.consultation_fee || 0) : 0;
   const { data: invoice, error: invoiceError } = await supabase
     .from('invoices')
     .insert({
