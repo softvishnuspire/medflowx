@@ -53,8 +53,8 @@ const ROLES: RoleOption[] = [
 
 export default function AuthPage() {
   const [activeRole, setActiveRole] = useState<RoleOption>(ROLES[0]);
-  const [email, setEmail] = useState<string>(ROLES[0].defaultEmail);
-  const [password, setPassword] = useState<string>('password123');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -62,7 +62,6 @@ export default function AuthPage() {
   // Update email when active role changes
   const handleRoleChange = (role: RoleOption) => {
     setActiveRole(role);
-    setEmail(role.defaultEmail);
     setErrorMsg(null);
     setIsDropdownOpen(false);
   };
@@ -163,7 +162,7 @@ export default function AuthPage() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSignIn} className="space-y-5">
+            <form onSubmit={handleSignIn} className="space-y-5" autoComplete="off">
               
               {/* Workspace Role Dropdown Selector */}
               <div className="relative">
@@ -260,6 +259,7 @@ export default function AuthPage() {
                     disabled={loading}
                     className="w-full bg-[#edf2f6] border border-[#c9d3e0] focus:border-[#a0aec0] focus:bg-white text-slate-800 text-sm font-semibold rounded-2xl py-3.5 pl-12 pr-4 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-500/5 transition-all"
                     placeholder="name@company.com"
+                    autoComplete="off"
                   />
                 </div>
               </div>
@@ -280,6 +280,7 @@ export default function AuthPage() {
                     disabled={loading}
                     className="w-full bg-[#edf2f6] border border-[#c9d3e0] focus:border-[#a0aec0] focus:bg-white text-slate-800 text-sm font-semibold rounded-2xl py-3.5 pl-12 pr-4 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-500/5 transition-all"
                     placeholder="••••••••"
+                    autoComplete="new-password"
                   />
                 </div>
                 {/* Forgot password link */}
