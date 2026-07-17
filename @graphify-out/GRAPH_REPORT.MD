@@ -1,18 +1,28 @@
-# Graph Report - MedflowX Initialization
+# Graph Report - MedflowX Initialization & Mobile Client
 
-This report tracks the components and code symbols added during the project initialization.
+This report tracks the components, architecture, and code symbols added during the project initialization and mobile development phase.
 
 ## System Graph Overview
 
 ```mermaid
 graph TD
-  subgraph Frontend [Next.js App Router]
+  subgraph Frontend [Vite React Web App]
     F_Home["/ (Home Page)"]
     F_Auth["/auth (Authentication)"]
     F_Reception["/reception (Reception Panel)"]
     F_Doctor["/doctor (Doctor Dashboard)"]
     F_Pharmacy["/pharmacy (Pharmacy Panel)"]
     F_Admin["/admin (Admin Dashboard)"]
+  end
+
+  subgraph Mobile [React Native + Expo SDK 54]
+    M_Auth["LoginScreen (Receptionist Only)"]
+    M_Dash["DashboardScreen (Daily stats + launcher)"]
+    M_Patients["PatientsScreen (Directory & profiles)"]
+    M_Reg["RegistrationScreen (Form)"]
+    M_Visit["VisitWizardScreen (OPD scheduling)"]
+    M_Queue["QueueScreen (Live sync waiting list)"]
+    M_Pay["PaymentsScreen (Billing desk)"]
   end
 
   subgraph Backend [Node.js + Express + TS]
@@ -25,6 +35,12 @@ graph TD
   F_Doctor -->|API / WebSockets| B_Server
   F_Pharmacy -->|API / WebSockets| B_Server
   F_Admin -->|API / WebSockets| B_Server
+  
+  M_Dash -->|Supabase Queries| B_Server
+  M_Reg -->|Supabase registerPatient| B_Server
+  M_Visit -->|Supabase createVisit| B_Server
+  M_Queue -->|Socket.io Live Sync| B_Server
+  M_Pay -->|Supabase collectPayment| B_Server
 ```
 
 ## Initialized Folders & Files
@@ -40,6 +56,25 @@ graph TD
   - `/src/app/pharmacy/page.tsx` - Completed Pharmacist Workspace UI (queue lookup, checkout, stock controls, socket connection)
   - `/src/app/admin/page.tsx` - Admin module placeholder
 
+### Mobile Client (Receptionist Only)
+- `/mobile`
+  - `/App.tsx` - Root coordinator for bottom-tab navigation and screens
+  - `/app.json` - Expo project configuration for SDK 54.0.8 compatibility
+  - `/package.json` - React Native 0.81.0, React 19.1.0, and required packages
+  - `/src/config/supabase.ts` - Supabase client setup with AsyncStorage session persistence
+  - `/src/config/socket.ts` - Real-time Socket.io client configuration
+  - `/src/services/reception.ts` - Database transactions port for statistics, registrations, visits, and payments
+  - `/src/theme/colors.ts` - Visual palette mirroring the web receptionist teal theme
+  - `/src/components/UI.tsx` - Custom UI elements (themed Buttons, Inputs, Cards, and Badges)
+  - `/src/screens/LoginScreen.tsx` - Role-restricted secure dark theme login
+  - `/src/screens/DashboardScreen.tsx` - Daily metrics dashboard and launcher Hub
+  - `/src/screens/PatientsScreen.tsx` - Outpatient directory and query database
+  - `/src/screens/RegistrationScreen.tsx` - Outpatient registration forms
+  - `/src/screens/ProfileScreen.tsx` - Outpatient profile sheet and visits logs
+  - `/src/screens/VisitWizardScreen.tsx` - OPD scheduler with dynamic fee calculation
+  - `/src/screens/QueueScreen.tsx` - Live queue with Socket.io auto-update
+  - `/src/screens/PaymentsScreen.tsx` - Bill collector and invoice checkouts
+
 ### Backend
 - `/backend`
   - `/src/index.ts` - Setup Express, Socket.io, middleware, health check, and registered pharmacy routes
@@ -50,6 +85,7 @@ graph TD
   - `/.env` - Backend environment settings
 
 ## Recent Fixes & Adjustments
+- **Receptionist Mobile Application Implementation**: Created a complete React Native mobile application under `/mobile` using Expo SDK 54. The mobile client targets receptionists exclusively, mirrors all web workflows with a premium teal theme styling, resolves environment parameters to host `https://medflowx.onrender.com`, and passes strict TypeScript compilation checks (`npx tsc --noEmit`) with zero errors.
 - **Supabase Client Initialization**: Safe guards added in [supabaseClient.ts](file:///c:/Users/phani/Desktop/office-files/medical-tracker-trueupmedia/frontend/src/lib/supabaseClient.ts) to check configurations before calling `createClient`, preventing top-level crashes when environment variables are unset.
 - **Supabase Null Client Fix**: Added Proxy-based safeguards in [supabaseClient.ts](file:///c:/Users/phani/Desktop/office-files/medical-tracker-trueupmedia/frontend/src/lib/supabaseClient.ts) and [supabase.ts](file:///c:/Users/phani/Desktop/office-files/medical-tracker-trueupmedia/frontend/src/lib/supabase.ts) to throw descriptive errors when Supabase environment variables are missing. This allows the reception panel's error boundary to display database connection instructions instead of throwing a blank screen with `Cannot read properties of null (reading 'from')`.
 - **Frontend Environment Configuration**: Created a `.env.local` file in the `frontend` folder containing the correct Supabase connection parameters mapped from the backend environment configuration to establish database connectivity.
