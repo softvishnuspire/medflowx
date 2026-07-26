@@ -317,10 +317,43 @@ export async function createVisit(visitData: VisitFormValues) {
  * Record payment for consultation fee, set invoice status to Paid, and update visit to Waiting.
  */
 export async function collectPayment(paymentData: PaymentFormValues) {
+  let targetInvoiceId = paymentData.invoice_id;
+
+  // Safeguard: Ensure invoice_id is valid and exists in invoices table
+  if (!targetInvoiceId || targetInvoiceId === 0) {
+    const { data: existingInvoice } = await supabase
+      .from('invoices')
+      .select('id')
+      .eq('visit_id', paymentData.visit_id)
+      .maybeSingle();
+
+    if (existingInvoice?.id) {
+      targetInvoiceId = existingInvoice.id;
+    } else {
+      const { data: newInvoice, error: invCreateErr } = await supabase
+        .from('invoices')
+        .insert({
+          visit_id: paymentData.visit_id,
+          patient_id: 1,
+          total_amount: paymentData.amount,
+          discount: 0,
+          tax: 0,
+          final_amount: paymentData.amount,
+          paid_amount: 0,
+          status: 'Unpaid',
+        })
+        .select()
+        .single();
+
+      if (invCreateErr) throw invCreateErr;
+      targetInvoiceId = newInvoice.id;
+    }
+  }
+
   const { data: payment, error: paymentError } = await supabase
     .from('payments')
     .insert({
-      invoice_id: paymentData.invoice_id,
+      invoice_id: targetInvoiceId,
       amount: paymentData.amount,
       payment_mode: paymentData.payment_mode,
       payment_status: 'Paid',
@@ -337,7 +370,7 @@ export async function collectPayment(paymentData: PaymentFormValues) {
       status: 'Paid',
       paid_amount: paymentData.amount,
     })
-    .eq('id', paymentData.invoice_id);
+    .eq('id', targetInvoiceId);
 
   if (invoiceError) throw invoiceError;
 

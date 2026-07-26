@@ -166,13 +166,14 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
         consultation_fee: isFirstVisit ? selectedDoc.consultation_fee : 0,
       });
 
-      toast('Visit scheduled successfully! Proceeding to billing...', 'success');
+      toast('Visit scheduled successfully!', 'success');
       
       const patName = `${selectedPatient.first_name} ${selectedPatient.last_name || ''}`.trim();
+      const fee = isFirstVisit ? selectedDoc.consultation_fee : 0;
       onVisitCreated(
         visit.id, 
-        invoice.id, 
-        invoice.final_amount, 
+        invoice?.id || 0, 
+        fee, 
         patName, 
         visit.visit_number
       );

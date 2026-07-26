@@ -44,19 +44,24 @@ export default function AdminPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem('medflowx_logged_in_user');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.role === 'Admin') {
-          setCurrentUser({
-            name: parsed.name || 'Hospital Administrator',
-            email: parsed.email || '',
-            avatarCode: parsed.avatarCode || 'AD'
-          });
-        }
-      } catch (e) {
-        console.error(e);
+    if (!saved) {
+      window.location.href = '/auth';
+      return;
+    }
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed.role !== 'Admin') {
+        window.location.href = '/auth';
+        return;
       }
+      setCurrentUser({
+        name: parsed.name || 'Hospital Administrator',
+        email: parsed.email || '',
+        avatarCode: parsed.avatarCode || 'AD'
+      });
+    } catch (e) {
+      window.location.href = '/auth';
+      return;
     }
   }, []);
 
@@ -67,8 +72,8 @@ export default function AdminPage() {
   };
 
   const handleLogout = () => {
-    // Routes back to root login page
-    window.location.href = '/';
+    localStorage.removeItem('medflowx_logged_in_user');
+    window.location.href = '/auth';
   };
 
   const menuItems = [

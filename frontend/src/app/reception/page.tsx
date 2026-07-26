@@ -53,19 +53,24 @@ export default function ReceptionPage() {
     socket.connect();
     
     const saved = localStorage.getItem('medflowx_logged_in_user');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.role === 'Reception') {
-          setCurrentUser({
-            name: parsed.name || 'Sarah Connor',
-            email: parsed.email || 'Desk Terminal #01',
-            avatarCode: parsed.avatarCode || 'SC'
-          });
-        }
-      } catch (e) {
-        console.error(e);
+    if (!saved) {
+      window.location.href = '/auth';
+      return;
+    }
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed.role !== 'Reception') {
+        window.location.href = '/auth';
+        return;
       }
+      setCurrentUser({
+        name: parsed.name || 'Sarah Connor',
+        email: parsed.email || 'Desk Terminal #01',
+        avatarCode: parsed.avatarCode || 'SC'
+      });
+    } catch (e) {
+      window.location.href = '/auth';
+      return;
     }
 
     return () => {
@@ -208,7 +213,10 @@ export default function ReceptionPage() {
           </button>
           
           <button
-            onClick={() => window.location.href = '/'}
+            onClick={() => {
+              localStorage.removeItem('medflowx_logged_in_user');
+              window.location.href = '/auth';
+            }}
             className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-red-650 hover:bg-red-50 transition-colors cursor-pointer"
           >
             <LogOut className="h-4.5 w-4.5 text-red-450" />

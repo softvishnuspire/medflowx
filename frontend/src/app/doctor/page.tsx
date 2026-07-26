@@ -1,19 +1,14 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { socket } from '@/lib/socket';
 
 // Subviews
-import DashboardView from '@/features/doctor/dashboard-view';
-import WorkspaceView from '@/features/doctor/workspace-view';
 import PatientsView from '@/features/doctor/patients-view';
 import ProfileView from '@/features/doctor/profile-view';
 
 // Icons
 import {
-  LayoutDashboard,
-  Activity,
   Users,
   User,
   LogOut,
@@ -21,27 +16,6 @@ import {
   Menu,
   X
 } from 'lucide-react';
-
-interface Visit {
-  id: string;
-  visit_number: string;
-  visit_date: string;
-  token_no: number;
-  chief_complaint: string;
-  status: 'Created' | 'Waiting' | 'In Progress' | 'Prescribed' | 'Sent to Pharmacy' | 'Dispensed' | 'Closed' | 'Cancelled';
-  patient_id: string;
-  patients: {
-    patient_code: string;
-    first_name: string;
-    last_name: string;
-    gender: string;
-    dob: string;
-    age: number;
-    phone: string;
-    allergies: string;
-    medical_history: string;
-  };
-}
 
 interface Doctor {
   id: string;
@@ -54,73 +28,36 @@ interface Doctor {
   };
 }
 
-type Tab = 'dashboard' | 'queue' | 'patients' | 'profile';
+type Tab = 'patients' | 'profile';
 
 export default function DoctorPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const [activeTab, setActiveTab] = useState<Tab>('patients');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null);
 
   // Doctor states
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
-  
-  // Real-time connection indicator
-  const [socketConnected, setSocketConnected] = useState(false);
-  
-  // Queue state shared with dashboard/workspace
-  const [visits, setVisits] = useState<Visit[]>([]);
-  const [loadingVisits, setLoadingVisits] = useState(true);
-  const [queueTab, setQueueTab] = useState<'waiting' | 'completed'>('waiting');
-  const [searchQuery, setSearchQuery] = useState('');
 
-  const selectedDoctorRef = useRef<Doctor | null>(null);
-
-  // Keep ref updated to avoid stale closure inside socket event callback
+  // Fetch doctors list on mount
   useEffect(() => {
-    selectedDoctorRef.current = selectedDoctor;
-  }, [selectedDoctor]);
-
-  // Connect socket and fetch doctors on mount
-  useEffect(() => {
-    fetchDoctors();
-    
-    socket.connect();
-    
-    function onConnect() {
-      setSocketConnected(true);
-      socket.emit('join-room', 'hospital');
+    const saved = localStorage.getItem('medflowx_logged_in_user');
+    if (!saved) {
+      window.location.href = '/auth';
+      return;
     }
-    
-    function onDisconnect() {
-      setSocketConnected(false);
-    }
-    
-    function onQueueUpdated() {
-      console.log('Received queue-updated broadcast. Refreshing visits...');
-      const currentDoc = selectedDoctorRef.current;
-      if (currentDoc) {
-        fetchVisits(currentDoc.id);
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed.role !== 'Doctor') {
+        window.location.href = '/auth';
+        return;
       }
+    } catch (e) {
+      window.location.href = '/auth';
+      return;
     }
-    
-    socket.on('connect', onConnect);
-    socket.on('disconnect', onDisconnect);
-    socket.on('queue-updated', onQueueUpdated);
-    
-    if (socket.connected) {
-      onConnect();
-    }
-    
-    return () => {
-      socket.off('connect', onConnect);
-      socket.off('disconnect', onDisconnect);
-      socket.off('queue-updated', onQueueUpdated);
-      socket.disconnect();
-    };
+    fetchDoctors();
   }, []);
 
-  // Fetch doctors list
   const fetchDoctors = async () => {
     try {
       const { data, error } = await supabase
@@ -140,7 +77,6 @@ export default function DoctorPage() {
       const formattedDoctors = (data || []) as unknown as Doctor[];
       setDoctors(formattedDoctors);
       if (formattedDoctors.length > 0) {
-        // Try to match logged-in doctor from localStorage session
         const saved = localStorage.getItem('medflowx_logged_in_user');
         let matchedDoc = null;
         if (saved) {
@@ -162,60 +98,13 @@ export default function DoctorPage() {
     }
   };
 
-  // Fetch visits for selected doctor
-  const fetchVisits = async (doctorId: string) => {
-    setLoadingVisits(true);
-    try {
-      const { data, error } = await supabase
-        .from('visits')
-        .select(`
-          id,
-          visit_number,
-          visit_date,
-          token_no,
-          chief_complaint,
-          status,
-          patient_id,
-          patients (
-            patient_code,
-            first_name,
-            last_name,
-            gender,
-            dob,
-            age,
-            phone,
-            allergies,
-            medical_history
-          )
-        `)
-        .eq('doctor_id', doctorId)
-        .order('token_no', { ascending: true });
-
-      if (error) throw error;
-      setVisits((data || []) as unknown as Visit[]);
-    } catch (error: any) {
-      console.error('Error fetching visits:', error.message);
-    } finally {
-      setLoadingVisits(false);
-    }
-  };
-
-  // Refresh queue when doctor is switched
-  useEffect(() => {
-    if (selectedDoctor) {
-      fetchVisits(selectedDoctor.id);
-      setSelectedVisit(null);
-    }
-  }, [selectedDoctor]);
-
   const handleLogout = () => {
-    window.location.href = '/';
+    localStorage.removeItem('medflowx_logged_in_user');
+    window.location.href = '/auth';
   };
 
   const menuItems = [
-    { id: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'queue' as const, label: 'Queue Workspace', icon: Activity },
-    { id: 'patients' as const, label: 'Patients EHR', icon: Users },
+    { id: 'patients' as const, label: 'Patient EHR & History', icon: Users },
   ];
 
   return (
@@ -237,17 +126,16 @@ export default function DoctorPage() {
           {/* Logo Brand */}
           <div className="h-16 px-6 border-b border-zinc-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-primary text-white shadow-sm transition-transform duration-200 hover:scale-105">
+              <div className="p-2 rounded-lg bg-primary text-white shadow-sm">
                 <Stethoscope className="h-5 w-5" />
               </div>
               <span className="font-extrabold text-zinc-900 tracking-tight text-lg font-heading">
                 Medflow<span className="text-primary">X</span>
               </span>
             </div>
-            {/* Mobile close button */}
             <button 
               onClick={() => setIsMobileMenuOpen(false)}
-              className="p-2 hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 rounded-lg md:hidden cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+              className="p-2 hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 rounded-lg md:hidden cursor-pointer"
               aria-label="Close menu"
             >
               <X className="h-5 w-5" />
@@ -267,13 +155,13 @@ export default function DoctorPage() {
                     setActiveTab(item.id);
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer ${
                     isActive
                       ? 'bg-primary text-white shadow-md font-bold'
                       : 'text-zinc-600 hover:text-primary hover:bg-primary/5'
                   }`}
                 >
-                  <Icon className={`h-5 w-5 transition-colors ${isActive ? 'text-white' : 'text-zinc-400 group-hover:text-primary'}`} />
+                  <Icon className={`h-5 w-5 transition-colors ${isActive ? 'text-white' : 'text-zinc-400'}`} />
                   <span>{item.label}</span>
                 </button>
               );
@@ -288,7 +176,7 @@ export default function DoctorPage() {
               setActiveTab('profile');
               setIsMobileMenuOpen(false);
             }}
-            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer ${
               activeTab === 'profile'
                 ? 'bg-primary text-white shadow-md font-bold'
                 : 'text-zinc-600 hover:text-primary hover:bg-primary/5'
@@ -300,9 +188,9 @@ export default function DoctorPage() {
           
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-red-650 hover:bg-red-50/80 transition-all duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none"
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-rose-600 hover:bg-rose-50/80 transition-all duration-200 cursor-pointer"
           >
-            <LogOut className="h-5 w-5 text-red-500" />
+            <LogOut className="h-5 w-5 text-rose-500" />
             <span>Logout</span>
           </button>
         </div>
@@ -313,28 +201,26 @@ export default function DoctorPage() {
         {/* Top Header Bar */}
         <header className="h-16 border-b border-zinc-200 bg-white px-6 md:px-8 flex items-center justify-between shrink-0 shadow-sm z-30 font-heading">
           
-          {/* Mobile open menu toggle */}
           <div className="flex items-center gap-3 md:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="p-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-500 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+              className="p-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-500 cursor-pointer"
               aria-label="Open menu"
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div className="text-xs text-zinc-500 font-bold uppercase tracking-wider font-heading">
-              OPD Portal
+            <div className="text-xs text-zinc-500 font-bold uppercase tracking-wider">
+              Doctor Panel
             </div>
           </div>
 
           <div className="hidden md:flex items-center gap-2 text-xs text-zinc-500 font-bold uppercase tracking-wider font-heading">
-            <div className={`h-2.5 w-2.5 rounded-full ${socketConnected ? 'bg-emerald-500 animate-pulse ring-4 ring-emerald-500/20' : 'bg-rose-500 ring-4 ring-rose-500/20'}`} />
-            <span>{socketConnected ? 'CLINICAL ACTIVE' : 'EHR OFFLINE MODE'}</span>
+            <span>CLINICAL DOCTOR DESK</span>
           </div>
           
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 font-body">
-              <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Active Dr:</span>
+              <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Doctor:</span>
               <select
                 value={selectedDoctor?.id || ''}
                 onChange={(e) => {
@@ -357,7 +243,7 @@ export default function DoctorPage() {
                   <span className="block text-sm font-bold text-zinc-800 leading-tight">{selectedDoctor.profiles?.full_name}</span>
                   <span className="block text-[10px] text-zinc-400 font-semibold font-heading uppercase">{selectedDoctor.qualification}</span>
                 </div>
-                <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-black flex items-center justify-center text-sm shadow-inner border border-primary/20 hover:bg-primary hover:text-white transition-colors duration-200 cursor-default">
+                <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-black flex items-center justify-center text-sm shadow-inner border border-primary/20">
                   {selectedDoctor.profiles?.full_name
                     ? selectedDoctor.profiles.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
                     : 'DR'
@@ -370,30 +256,6 @@ export default function DoctorPage() {
 
         {/* Inner sub-view container */}
         <div className="flex-1 overflow-y-auto p-6 md:p-8 max-w-7xl w-full mx-auto font-body">
-          {activeTab === 'dashboard' && (
-            <DashboardView 
-              selectedDoctor={selectedDoctor} 
-              visits={visits} 
-              onNavigateToQueue={() => setActiveTab('queue')}
-            />
-          )}
-          
-          {activeTab === 'queue' && (
-            <WorkspaceView 
-              selectedDoctor={selectedDoctor}
-              visits={visits}
-              loadingVisits={loadingVisits}
-              queueTab={queueTab}
-              setQueueTab={setQueueTab}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              selectedVisit={selectedVisit}
-              setSelectedVisit={setSelectedVisit}
-              socketConnected={socketConnected}
-              fetchVisits={fetchVisits}
-            />
-          )}
-
           {activeTab === 'patients' && (
             <PatientsView />
           )}

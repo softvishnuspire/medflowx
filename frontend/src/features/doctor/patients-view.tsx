@@ -11,10 +11,24 @@ import {
   TableCell 
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { Search, Eye, ClipboardList, RefreshCw, ChevronLeft, Calendar, AlertCircle } from 'lucide-react';
+import { 
+  Search, 
+  Eye, 
+  ClipboardList, 
+  RefreshCw, 
+  ChevronLeft, 
+  Calendar, 
+  AlertCircle,
+  FileText,
+  X,
+  Image as ImageIcon,
+  IndianRupee,
+  User,
+  Phone
+} from 'lucide-react';
 
 interface Patient {
-  id: string;
+  id: string | number;
   patient_code: string;
   first_name: string;
   last_name: string;
@@ -28,34 +42,23 @@ interface Patient {
   created_at: string;
 }
 
-interface PastVisit {
-  id: string;
+interface Visit {
+  id: string | number;
   visit_date: string;
   visit_number: string;
   chief_complaint: string;
   status: string;
-  diagnoses: Array<{
+  prescription_image_front?: string | null;
+  prescription_image_back?: string | null;
+  prescription_amount?: number | null;
+  diagnoses?: Array<{
     symptoms: string;
     clinical_findings: string;
     diagnosis: string;
     doctor_notes: string;
-    follow_up_advice: string;
   }>;
-  prescriptions: Array<{
+  prescriptions?: Array<{
     advice: string;
-    follow_up_date: string;
-    prescription_items: Array<{
-      id: string;
-      dosage: string;
-      frequency: string;
-      duration: string;
-      quantity: number;
-      instructions: string;
-      medicines: {
-        medicine_name: string;
-        strength: string;
-      };
-    }>;
   }>;
 }
 
@@ -64,19 +67,22 @@ export default function PatientsView() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   
-  // Detail state
+  // Selected Patient Detail state
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [pastVisits, setPastVisits] = useState<PastVisit[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [patientVisits, setPatientVisits] = useState<Visit[]>([]);
+  const [loadingVisits, setLoadingVisits] = useState(false);
+
+  // Lightbox Modal state for full-screen image preview
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const loadPatients = async () => {
     try {
       setIsLoading(true);
       let query = supabase.from('patients').select('*');
       if (search.trim()) {
-        query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,patient_code.ilike.%${search}%,phone.ilike.%${search}%`);
+        query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,phone.ilike.%${search}%`);
       }
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const { data, error } = await query.order('created_at', { ascending: false }).limit(20);
       if (error) throw error;
       setPatients(data || []);
     } catch (err: any) {
@@ -86,344 +92,366 @@ export default function PatientsView() {
     }
   };
 
-  const loadPatientVisits = async (patientId: string) => {
+  const loadPatientVisits = async (patientId: string | number) => {
     try {
-      setLoadingHistory(true);
-      const { data, error } = await supabase
+      setLoadingVisits(true);
+      
+      // Try querying visits with prescriptions & diagnoses
+      let { data, error } = await supabase
         .from('visits')
         .select(`
-          id,
-          visit_date,
-          visit_number,
-          chief_complaint,
-          status,
+          *,
           diagnoses (
             symptoms,
             clinical_findings,
             diagnosis,
-            doctor_notes,
-            follow_up_advice
+            doctor_notes
           ),
           prescriptions (
+            id,
             advice,
-            follow_up_date,
-            prescription_items (
-              id,
-              dosage,
-              frequency,
-              duration,
-              quantity,
-              instructions,
-              medicines (
-                medicine_name,
-                strength
-              )
-            )
+            created_at
           )
         `)
         .eq('patient_id', patientId)
         .order('visit_date', { ascending: false });
 
-      if (error) throw error;
-      setPastVisits((data || []) as unknown as PastVisit[]);
+      if (error) {
+        console.warn('Fallback querying basic visits:', error.message);
+        const res = await supabase
+          .from('visits')
+          .select('*, prescriptions(id, advice)')
+          .eq('patient_id', patientId)
+          .order('visit_date', { ascending: false });
+        data = res.data;
+      }
+
+      setPatientVisits((data || []) as unknown as Visit[]);
     } catch (err: any) {
-      console.error('Error fetching patient history:', err.message);
+      console.error('Error fetching patient visits:', err.message);
     } finally {
-      setLoadingHistory(false);
+      setLoadingVisits(false);
     }
   };
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (!selectedPatient) {
-        loadPatients();
-      }
+      loadPatients();
     }, 300);
     return () => clearTimeout(timer);
-  }, [search, selectedPatient]);
+  }, [search]);
 
   const handleInspectPatient = (patient: Patient) => {
     setSelectedPatient(patient);
     loadPatientVisits(patient.id);
   };
 
-  if (selectedPatient) {
-    return (
-      <div className="space-y-6 animate-slide-in text-text-custom font-body">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => setSelectedPatient(null)}
-            className="inline-flex items-center gap-2 px-4.5 py-2.5 border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-650 hover:text-primary rounded-lg text-xs font-bold shadow-sm cursor-pointer transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
-          >
-            <ChevronLeft className="h-4.5 w-4.5" />
-            Back to Directory
-          </button>
-          <div className="text-xs font-mono text-zinc-400 font-bold uppercase tracking-wider font-heading">
-            EHR Detail Inspector
-          </div>
-        </div>
-
-        {/* Patient Profile card */}
-        <Card className="border border-zinc-200 bg-white rounded-xl shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4.5 border-b border-zinc-150">
-              <div>
-                <span className="text-xs font-mono text-primary font-bold bg-primary/10 px-2.5 py-1 rounded border border-primary/20">
-                  {selectedPatient.patient_code}
-                </span>
-                <h2 className="text-2xl font-bold text-zinc-900 mt-3 font-heading">
-                  {selectedPatient.first_name} {selectedPatient.last_name || ''}
-                </h2>
-              </div>
-              <div className="flex flex-wrap gap-2.5 text-xs font-bold">
-                <span className="px-3 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-700">
-                  {selectedPatient.age} Yrs Old
-                </span>
-                <span className="px-3 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-700">
-                  Gender: {selectedPatient.gender}
-                </span>
-                {selectedPatient.blood_group && (
-                  <span className="px-3 py-1.5 bg-rose-50 border border-rose-150 rounded-lg text-rose-700">
-                    Blood Group: {selectedPatient.blood_group}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6 mt-5 text-xs leading-relaxed">
-              <div className="space-y-1.5">
-                <h4 className="text-[10px] font-bold text-zinc-450 uppercase tracking-wider font-heading">Contact Details</h4>
-                <p className="text-zinc-700 font-semibold"><strong>Phone:</strong> {selectedPatient.phone}</p>
-                <p className="text-zinc-500 font-medium"><strong>Enrolled Since:</strong> {new Date(selectedPatient.created_at).toLocaleDateString()}</p>
-              </div>
-              <div className="space-y-2">
-                <h4 className="text-[10px] font-bold text-zinc-455 uppercase tracking-wider font-heading">Declared Medical Conditions</h4>
-                <p className="text-zinc-700 bg-zinc-50/50 p-3 rounded-lg border border-zinc-200 font-medium leading-relaxed">
-                  {selectedPatient.medical_history || 'No declared medical conditions.'}
-                </p>
-                {selectedPatient.allergies && (
-                  <div className="flex gap-2 items-start text-rose-700 bg-rose-50 p-3 rounded-lg border border-rose-150 shadow-xs font-bold">
-                    <AlertCircle className="h-4.5 w-4.5 shrink-0 mt-0.5" />
-                    <span><strong>Allergies:</strong> {selectedPatient.allergies}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Clinical History logs */}
-        <section aria-labelledby="history-heading">
-          <h3 id="history-heading" className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-4 font-heading">
-            EHR Clinical History Logs
-          </h3>
-          
-          {loadingHistory ? (
-            <div className="p-12 flex flex-col items-center justify-center space-y-4 bg-white border border-zinc-200 rounded-xl">
-              <div className="w-8 h-8 rounded-full border-4 border-zinc-200 border-t-primary animate-spin" />
-              <span className="text-sm font-semibold text-zinc-450">Fetching historical charts...</span>
-            </div>
-          ) : pastVisits.length === 0 ? (
-            <div className="p-20 text-center bg-white border border-zinc-200 rounded-xl shadow-xs">
-              <ClipboardList className="h-12 w-12 text-zinc-300 mx-auto mb-3" />
-              <h4 className="font-bold text-zinc-800 text-sm font-heading uppercase tracking-wide">No clinical logs</h4>
-              <p className="text-zinc-500 text-xs mt-1 font-medium">This patient has not completed any OPD consultations yet.</p>
-            </div>
-          ) : (
-            <div className="space-y-5">
-              {pastVisits.map((visit) => (
-                <Card key={visit.id} className="border border-zinc-200 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent className="p-5 space-y-4">
-                    {/* Log Header */}
-                    <div className="flex items-center justify-between border-b border-zinc-150 pb-3">
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-primary font-bold text-sm flex items-center gap-1.5 font-heading">
-                          <Calendar className="h-4.5 w-4.5 text-zinc-400" />
-                          {new Date(visit.visit_date).toLocaleDateString(undefined, {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </span>
-                        <span className="text-zinc-300">•</span>
-                        <span className="text-xs text-zinc-450 font-mono font-bold">{visit.visit_number}</span>
-                      </div>
-                      <span className="bg-zinc-50 text-zinc-650 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-zinc-200">
-                        {visit.status}
-                      </span>
-                    </div>
-
-                    {/* Complaint */}
-                    <div className="text-xs font-semibold">
-                      <strong className="text-[10px] font-bold text-zinc-450 uppercase tracking-wider block mb-1.5 font-heading">Chief Complaint</strong>
-                      <p className="text-zinc-700 italic bg-zinc-50/50 p-2.5 rounded-lg border border-zinc-100 font-medium">"{visit.chief_complaint}"</p>
-                    </div>
-
-                    {/* Diagnoses */}
-                    {visit.diagnoses && visit.diagnoses.length > 0 && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-cyan-50/20 p-3.5 rounded-lg border border-cyan-100 font-semibold">
-                        <div>
-                          <strong className="text-[10px] font-bold text-zinc-450 uppercase tracking-wider font-heading">Diagnosis</strong>
-                          <p className="text-xs text-primary font-bold mt-1.5 leading-normal">{visit.diagnoses[0].diagnosis}</p>
-                        </div>
-                        <div>
-                          <strong className="text-[10px] font-bold text-zinc-455 uppercase tracking-wider font-heading">Symptoms</strong>
-                          <p className="text-xs text-zinc-650 mt-1.5 leading-relaxed">{visit.diagnoses[0].symptoms || '—'}</p>
-                        </div>
-                        <div>
-                          <strong className="text-[10px] font-bold text-zinc-455 uppercase tracking-wider font-heading">Clinical Findings</strong>
-                          <p className="text-xs text-zinc-650 mt-1.5 leading-relaxed">{visit.diagnoses[0].clinical_findings || '—'}</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Rx Medicines */}
-                    {visit.prescriptions && visit.prescriptions.length > 0 && (
-                      <div className="space-y-2">
-                        <strong className="text-[10px] font-bold text-zinc-455 uppercase tracking-wider block font-heading">Prescribed Medicines (Rx)</strong>
-                        <div className="grid md:grid-cols-2 gap-3">
-                          {visit.prescriptions[0].prescription_items?.map((item) => (
-                            <div
-                              key={item.id}
-                              className="bg-white border border-zinc-200 p-3.5 rounded-lg text-xs flex justify-between gap-3 shadow-xs hover:border-zinc-250 transition-colors font-semibold"
-                            >
-                              <div>
-                                <div className="font-bold text-zinc-805">
-                                  {item.medicines?.medicine_name} ({item.medicines?.strength})
-                                </div>
-                                <div className="text-[10px] text-zinc-500 font-semibold mt-1">
-                                  {item.dosage} • {item.frequency} • {item.duration}
-                                </div>
-                                {item.instructions && (
-                                  <div className="text-[9px] text-primary mt-1.5 font-bold italic">
-                                    * {item.instructions}
-                                  </div>
-                                )}
-                              </div>
-                              <span className="text-[10px] font-bold text-zinc-450 self-center bg-zinc-50 px-2 py-0.5 rounded border border-zinc-200">
-                                Qty: {item.quantity}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6 animate-slide-in text-text-custom font-body">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-extrabold text-zinc-900 tracking-tight font-heading">Patient EHR Directory</h1>
-        <p className="text-sm text-zinc-650 mt-1">Clinical records lookup, diagnostics inspection, and history trackers.</p>
-      </div>
-
-      {/* Filter Bar */}
-      <Card className="border border-zinc-200 bg-white rounded-xl shadow-xs">
-        <CardContent className="p-4 flex gap-4 items-center justify-between">
-          <div className="relative w-full md:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-zinc-400" />
-            <input
-              type="text"
-              placeholder="Search by Code, Phone or Name..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 border border-zinc-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-zinc-400 font-semibold"
+    <div className="space-y-6 text-text-custom font-body">
+      
+      {/* Lightbox Modal for Enlarged Prescription View */}
+      {previewImage && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center justify-center">
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute -top-12 right-0 p-2 bg-white/20 hover:bg-white/40 text-white rounded-full transition-colors cursor-pointer"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <img 
+              src={previewImage} 
+              alt="Prescription Photo" 
+              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border border-white/20"
+              onClick={(e) => e.stopPropagation()}
             />
           </div>
+        </div>
+      )}
 
-          <button
-            onClick={loadPatients}
-            className="p-2.5 border border-zinc-200 rounded-lg bg-white text-zinc-550 hover:text-primary hover:border-primary/40 hover:bg-zinc-50 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
-            title="Refresh database"
-          >
-            <RefreshCw className="h-4.5 w-4.5" />
-          </button>
-        </CardContent>
-      </Card>
+      {selectedPatient ? (
+        /* ════════════════════ PATIENT DETAIL & VISITS VIEW ════════════════════ */
+        <div className="space-y-6 animate-slide-in">
+          {/* Header Bar */}
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setSelectedPatient(null)}
+              className="inline-flex items-center gap-2 px-4 py-2 border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 hover:text-primary rounded-xl text-xs font-bold shadow-xs cursor-pointer transition-all"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Back to Patient Search
+            </button>
+            <span className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-wider">
+              Patient History & Prescriptions
+            </span>
+          </div>
 
-      {/* Table Card */}
-      <Card className="border border-zinc-200 bg-white rounded-xl shadow-sm overflow-hidden">
-        {isLoading ? (
-          <div className="p-16 flex flex-col items-center justify-center space-y-4">
-            <div className="w-8 h-8 rounded-full border-4 border-zinc-200 border-t-primary animate-spin" />
-            <span className="text-sm font-semibold text-zinc-450">Loading database entries...</span>
+          {/* Patient Card */}
+          <Card className="border border-zinc-200 bg-white rounded-xl shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-150 pb-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold text-lg border border-primary/20">
+                    <User className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-zinc-900 font-heading">
+                      {selectedPatient.first_name} {selectedPatient.last_name || ''}
+                    </h2>
+                    <div className="flex items-center gap-3 text-xs text-zinc-500 font-medium mt-1">
+                      <span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5 text-zinc-400" /> {selectedPatient.phone}</span>
+                      <span>•</span>
+                      <span>{selectedPatient.age ? `${selectedPatient.age} Yrs` : '—'} / {selectedPatient.gender}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-primary/5 px-4 py-2 rounded-xl border border-primary/15 text-right">
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase block font-heading">Clinic Record ID</span>
+                  <span className="text-sm font-mono font-bold text-primary">{selectedPatient.patient_code}</span>
+                </div>
+              </div>
+
+              {/* Physical Prescription Guidance Note */}
+              <div className="mt-5 p-4 rounded-xl bg-teal-50/60 border border-teal-200 flex items-start gap-3">
+                <FileText className="h-5 w-5 text-teal-600 shrink-0 mt-0.5" />
+                <div className="text-xs text-teal-900 leading-relaxed font-medium">
+                  <strong className="font-bold text-teal-950 block mb-0.5">Physical Prescription Process:</strong>
+                  Please write a physical paper prescription for the patient. The patient will present the physical prescription to the pharmacy counter where photos will be digitized.
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Visits & Prescriptions Timeline */}
+          <section className="space-y-4">
+            <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider font-heading flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-primary" />
+              Patient Visit Logs & Uploaded Prescriptions
+            </h3>
+
+            {loadingVisits ? (
+              <div className="p-12 bg-white rounded-xl border border-zinc-200 flex flex-col items-center justify-center">
+                <RefreshCw className="h-6 w-6 animate-spin text-primary mb-2" />
+                <span className="text-xs text-zinc-400 font-medium">Fetching visit history...</span>
+              </div>
+            ) : patientVisits.length === 0 ? (
+              <div className="p-12 bg-white rounded-xl border border-zinc-200 text-center">
+                <ClipboardList className="h-10 w-10 text-zinc-300 mx-auto mb-2" />
+                <p className="text-xs font-bold text-zinc-600">No previous visits recorded for this patient.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {patientVisits.map((visit) => {
+                  let activeFront = visit.prescription_image_front || null;
+                  let activeBack = visit.prescription_image_back || null;
+                  let activeAmount = visit.prescription_amount || null;
+
+                  // Inspect prescriptions array for JSON or formatted text payloads
+                  if (visit.prescriptions && Array.isArray(visit.prescriptions)) {
+                    for (const rx of visit.prescriptions) {
+                      const adviceText = rx.advice || '';
+                      if (!adviceText) continue;
+
+                      // 1. Try parsing JSON
+                      try {
+                        const parsed = JSON.parse(adviceText);
+                        if (parsed.front) activeFront = activeFront || parsed.front;
+                        if (parsed.back) activeBack = activeBack || parsed.back;
+                        if (parsed.amount) activeAmount = activeAmount || parsed.amount;
+                      } catch (e) {
+                        // 2. Fallback text parsing
+                        if (adviceText.includes('Front:')) {
+                          const matchF = adviceText.match(/Front:\s*([^\s|]+)/);
+                          if (matchF) activeFront = activeFront || matchF[1];
+                          const matchB = adviceText.match(/Back:\s*([^\s|]+)/);
+                          if (matchB) activeBack = activeBack || matchB[1];
+                          const matchA = adviceText.match(/Amount:\s*₹?(\d+)/);
+                          if (matchA) activeAmount = activeAmount || Number(matchA[1]);
+                        }
+                      }
+                    }
+                  }
+
+                  return (
+                    <Card key={visit.id} className="border border-zinc-200 bg-white rounded-xl shadow-xs hover:shadow-md transition-shadow">
+                      <CardContent className="p-5 space-y-4">
+                        {/* Visit Header */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-150 pb-3">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-zinc-900 font-heading">
+                              Visit Date: {new Date(visit.visit_date).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            {visit.status}
+                          </span>
+                        </div>
+
+                        {/* Symptoms / Chief Complaint */}
+                        <div>
+                          <strong className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">
+                            Recorded Symptoms & Chief Complaint
+                          </strong>
+                          <p className="text-xs text-zinc-700 bg-zinc-50 p-3 rounded-lg border border-zinc-200 font-medium">
+                            {visit.chief_complaint || visit.diagnoses?.[0]?.symptoms || 'No symptoms specified.'}
+                          </p>
+                        </div>
+
+                        {/* Uploaded Physical Prescription Photos */}
+                        <div>
+                          <strong className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2 font-heading">
+                            Uploaded Physical Prescription (Pharmacy Digitized)
+                          </strong>
+                          
+                          {activeFront || activeBack ? (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                              {activeFront && (
+                                <div className="space-y-1">
+                                  <span className="text-[10px] font-bold text-zinc-500 block">Front Photo</span>
+                                  <div 
+                                    onClick={() => setPreviewImage(activeFront)}
+                                    className="relative group aspect-3/4 bg-zinc-100 rounded-xl overflow-hidden border border-zinc-200 cursor-pointer shadow-xs hover:border-primary transition-all"
+                                  >
+                                    <img src={activeFront} alt="Front Prescription" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1">
+                                      <Eye className="h-4 w-4" /> View Full
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {activeBack && (
+                                <div className="space-y-1">
+                                  <span className="text-[10px] font-bold text-zinc-500 block">Back Photo (Optional)</span>
+                                  <div 
+                                    onClick={() => setPreviewImage(activeBack)}
+                                    className="relative group aspect-3/4 bg-zinc-100 rounded-xl overflow-hidden border border-zinc-200 cursor-pointer shadow-xs hover:border-primary transition-all"
+                                  >
+                                    <img src={activeBack} alt="Back Prescription" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1">
+                                      <Eye className="h-4 w-4" /> View Full
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="p-4 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/50 text-center text-xs text-zinc-400">
+                              No prescription photos uploaded yet for this visit.
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Prescription Amount if logged */}
+                        {activeAmount && (
+                          <div className="flex items-center gap-2 text-xs font-bold text-zinc-700 pt-2 border-t border-zinc-100">
+                            <IndianRupee className="h-4 w-4 text-primary" />
+                            <span>Pharmacy Prescription Cost: <strong className="text-primary font-heading">₹{activeAmount}</strong></span>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </div>
+      ) : (
+        /* ════════════════════ PATIENT SEARCH DIRECTORY ════════════════════ */
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-extrabold text-zinc-900 tracking-tight font-heading">Doctor Clinical Panel</h1>
+            <p className="text-sm text-zinc-500 mt-1">Search patients by name or phone number to view their visit history & uploaded physical prescriptions.</p>
           </div>
-        ) : patients.length === 0 ? (
-          <div className="p-20 text-center">
-            <ClipboardList className="h-12 w-12 text-zinc-300 mx-auto mb-3" />
-            <h3 className="font-bold text-zinc-800 text-sm font-heading uppercase tracking-wide">No patient profiles found</h3>
-            <p className="text-zinc-500 text-xs mt-1 font-medium font-semibold">Make sure the query matches clinic codes or contact details.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-zinc-50/70 border-b border-zinc-200 font-heading">
-                <TableRow>
-                  <TableHead className="font-bold text-zinc-500 text-[11px] uppercase tracking-wider py-3.5">Code</TableHead>
-                  <TableHead className="font-bold text-zinc-500 text-[11px] uppercase tracking-wider py-3.5">Name</TableHead>
-                  <TableHead className="font-bold text-zinc-500 text-[11px] uppercase tracking-wider py-3.5">Age / Gender</TableHead>
-                  <TableHead className="font-bold text-zinc-500 text-[11px] uppercase tracking-wider py-3.5">Phone Number</TableHead>
-                  <TableHead className="font-bold text-zinc-500 text-[11px] uppercase tracking-wider py-3.5">Blood</TableHead>
-                  <TableHead className="font-bold text-zinc-500 text-[11px] uppercase tracking-wider py-3.5">Enrollment Date</TableHead>
-                  <TableHead className="font-bold text-zinc-500 text-[11px] uppercase tracking-wider py-3.5 text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {patients.map((pat) => (
-                  <TableRow key={pat.id} className="hover:bg-primary/5 transition-colors duration-150">
-                    <TableCell className="font-bold text-zinc-900 font-mono text-xs py-4">
-                      {pat.patient_code}
-                    </TableCell>
-                    <TableCell className="font-bold text-zinc-800 py-4">
-                      {pat.first_name} {pat.last_name || ''}
-                    </TableCell>
-                    <TableCell className="text-xs font-semibold text-zinc-650 py-4">
-                      {pat.age ? `${pat.age} Yrs` : '—'} • {pat.gender}
-                    </TableCell>
-                    <TableCell className="text-xs font-bold text-zinc-600 py-4">
-                      {pat.phone}
-                    </TableCell>
-                    <TableCell className="py-4">
-                      {pat.blood_group ? (
-                        <span className="px-2.5 py-0.5 rounded bg-red-50 text-red-700 text-[10px] font-bold border border-red-150">
-                          {pat.blood_group}
-                        </span>
-                      ) : (
-                        <span className="text-zinc-300 font-bold">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs font-semibold text-zinc-450 py-4">
-                      {new Date(pat.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right py-4">
-                      <button
-                        onClick={() => handleInspectPatient(pat)}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-zinc-200 bg-white hover:bg-primary hover:text-white hover:border-primary text-zinc-700 font-bold text-xs transition-all cursor-pointer shadow-xs focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
-                        title="Inspect clinical history"
-                      >
-                        <Eye className="h-4 w-4 shrink-0" />
-                        <span>Inspect EHR</span>
-                      </button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </Card>
+
+          {/* Search Input */}
+          <Card className="border border-zinc-200 bg-white rounded-xl shadow-xs">
+            <CardContent className="p-4 flex gap-4 items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-zinc-400" />
+                <input
+                  type="text"
+                  placeholder="Search patient by Name or Phone Number..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 border border-zinc-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium placeholder:text-zinc-400"
+                />
+              </div>
+              <button
+                onClick={loadPatients}
+                className="p-2.5 border border-zinc-200 rounded-xl bg-white text-zinc-500 hover:text-primary hover:bg-zinc-50 transition-all cursor-pointer"
+                title="Refresh"
+              >
+                <RefreshCw className="h-4.5 w-4.5" />
+              </button>
+            </CardContent>
+          </Card>
+
+          {/* Patient Directory Table */}
+          <Card className="border border-zinc-200 bg-white rounded-xl shadow-sm overflow-hidden">
+            {isLoading ? (
+              <div className="p-16 flex flex-col items-center justify-center space-y-3">
+                <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+                <span className="text-xs text-zinc-400 font-medium">Searching patient records...</span>
+              </div>
+            ) : patients.length === 0 ? (
+              <div className="p-16 text-center">
+                <User className="h-10 w-10 text-zinc-300 mx-auto mb-2" />
+                <h3 className="font-bold text-zinc-800 text-sm">No patients found</h3>
+                <p className="text-xs text-zinc-400 mt-1">Try typing a patient's full name or phone number.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-zinc-50 border-b border-zinc-200 font-heading">
+                    <TableRow>
+                      <TableHead className="font-bold text-zinc-500 text-[11px] uppercase tracking-wider py-3.5">Name</TableHead>
+                      <TableHead className="font-bold text-zinc-500 text-[11px] uppercase tracking-wider py-3.5">Phone Number</TableHead>
+                      <TableHead className="font-bold text-zinc-500 text-[11px] uppercase tracking-wider py-3.5">Age / Gender</TableHead>
+                      <TableHead className="font-bold text-zinc-500 text-[11px] uppercase tracking-wider py-3.5">Record ID</TableHead>
+                      <TableHead className="font-bold text-zinc-500 text-[11px] uppercase tracking-wider py-3.5 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {patients.map((patient) => (
+                      <TableRow key={patient.id} className="hover:bg-primary/5 transition-colors cursor-pointer" onClick={() => handleInspectPatient(patient)}>
+                        <TableCell className="font-bold text-zinc-900 py-4">
+                          {patient.first_name} {patient.last_name || ''}
+                        </TableCell>
+                        <TableCell className="font-bold text-zinc-700 py-4">
+                          {patient.phone}
+                        </TableCell>
+                        <TableCell className="text-xs font-semibold text-zinc-500 py-4">
+                          {patient.age ? `${patient.age} Yrs` : '—'} • {patient.gender}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs font-bold text-primary py-4">
+                          {patient.patient_code}
+                        </TableCell>
+                        <TableCell className="text-right py-4">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleInspectPatient(patient);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-primary hover:text-white text-zinc-700 text-xs font-bold transition-all shadow-xs"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            View History & Prescriptions
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

@@ -63,8 +63,101 @@ export async function getDashboardStats() {
 }
 
 /**
+ * Helper to upload prescription image (JPG/PNG) to Supabase Storage or convert to base64 fallback.
+ */
+export async function uploadPrescriptionPhoto(file: File): Promise<string> {
+  try {
+    const fileExt = file.name.split('.').pop() || 'jpg';
+    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+
+    const { error } = await supabase.storage
+      .from('prescriptions')
+      .upload(fileName, file);
+
+    if (!error) {
+      const { data: publicUrlData } = supabase.storage
+        .from('prescriptions')
+        .getPublicUrl(fileName);
+      if (publicUrlData?.publicUrl) {
+        return publicUrlData.publicUrl;
+      }
+    } else {
+      console.warn('Storage upload error details:', error.message);
+    }
+  } catch (err) {
+    console.warn('Supabase storage upload fallback to Base64:', err);
+  }
+
+  // Fallback to Base64 Data URL if storage bucket is unavailable
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (err) => reject(err);
+  });
+}
+
+/**
+ * Submit physical prescription images and cost for a visit.
+ */
+export async function submitPhysicalPrescription(params: {
+  visitId: number | string;
+  frontImage: File;
+  backImage?: File | null;
+  amount: number;
+}) {
+  const frontUrl = await uploadPrescriptionPhoto(params.frontImage);
+  let backUrl: string | null = null;
+  if (params.backImage) {
+    backUrl = await uploadPrescriptionPhoto(params.backImage);
+  }
+
+  const rxPayload = JSON.stringify({
+    type: 'PHYSICAL_PRESCRIPTION',
+    front: frontUrl,
+    back: backUrl,
+    amount: params.amount,
+  });
+
+  // Always insert into prescriptions table for 100% database compatibility
+  const { error: rxInsertErr } = await supabase.from('prescriptions').insert({
+    visit_id: params.visitId,
+    advice: rxPayload,
+  });
+
+  if (rxInsertErr) {
+    console.warn('Could not insert into prescriptions table:', rxInsertErr.message);
+  }
+
+  // Attempt updating visits table directly if columns exist
+  try {
+    await supabase
+      .from('visits')
+      .update({
+        prescription_image_front: frontUrl,
+        prescription_image_back: backUrl,
+        prescription_amount: params.amount,
+        status: 'Prescribed',
+      })
+      .eq('id', params.visitId);
+  } catch (e: any) {
+    console.warn('Direct visits column update skipped:', e.message);
+  }
+
+  // Always update visit status to Prescribed
+  const { data: updatedVisit } = await supabase
+    .from('visits')
+    .update({ status: 'Prescribed' })
+    .eq('id', params.visitId)
+    .select()
+    .single();
+
+  return updatedVisit;
+}
+
+/**
  * Advanced patient search supporting autocomplete filter.
- * Matches: Phone (Primary), Code, Name (Partial).
+ * Matches: Phone (Primary), Name (Partial).
  */
 export async function searchPatients(query: string) {
   if (!query || query.trim() === '') {
@@ -81,7 +174,7 @@ export async function searchPatients(query: string) {
     .from('patients')
     .select('*, patient_addresses(*)')
     .or(
-      `phone.ilike.%${cleanQuery}%,patient_code.ilike.%${cleanQuery}%,first_name.ilike.%${cleanQuery}%,last_name.ilike.%${cleanQuery}%`
+      `phone.ilike.%${cleanQuery}%,first_name.ilike.%${cleanQuery}%,last_name.ilike.%${cleanQuery}%,patient_code.ilike.%${cleanQuery}%`
     )
     .limit(20);
 
@@ -90,9 +183,9 @@ export async function searchPatients(query: string) {
 }
 
 /**
- * Fetch patient by ID with address and history.
+ * Fetch patient by ID with full visit history and prescription images.
  */
-export async function getPatientById(id: number) {
+export async function getPatientById(id: number | string) {
   const { data: patient, error: patientError } = await supabase
     .from('patients')
     .select('*, patient_addresses(*)')
@@ -103,7 +196,7 @@ export async function getPatientById(id: number) {
 
   const { data: visits, error: visitsError } = await supabase
     .from('visits')
-    .select('*, doctors(id, qualification, consultation_fee, profiles!user_id(full_name), departments(department_name))')
+    .select('*, doctors(id, qualification, consultation_fee, profiles!user_id(full_name), departments(department_name)), prescriptions(*)')
     .eq('patient_id', id)
     .order('visit_date', { ascending: false });
 
@@ -112,6 +205,85 @@ export async function getPatientById(id: number) {
   return {
     patient: patient as Patient,
     visits: (visits || []) as any[],
+  };
+}
+
+/**
+ * Create visit and associate a pending invoice.
+ */
+export async function createVisit(visitData: VisitFormValues) {
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date();
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const { count, error: countError } = await supabase
+    .from('visits')
+    .select('*', { count: 'exact', head: true })
+    .eq('doctor_id', visitData.doctor_id)
+    .gte('visit_date', startOfDay.toISOString())
+    .lte('visit_date', endOfDay.toISOString());
+
+  if (countError) throw countError;
+  const tokenNo = (count || 0) + 1;
+
+  const { data: visit, error: visitError } = await supabase
+    .from('visits')
+    .insert({
+      patient_id: visitData.patient_id,
+      doctor_id: visitData.doctor_id,
+      token_no: tokenNo,
+      chief_complaint: visitData.chief_complaint,
+      status: 'Created',
+    })
+    .select()
+    .single();
+
+  if (visitError) throw visitError;
+
+  const isFirst = await checkIsFirstVisit(visitData.patient_id);
+  const fee = isFirst ? (visitData.consultation_fee || 0) : 0;
+  const { data: invoice, error: invoiceError } = await supabase
+    .from('invoices')
+    .insert({
+      visit_id: visit.id,
+      patient_id: visitData.patient_id,
+      total_amount: fee,
+      discount: 0,
+      tax: 0,
+      final_amount: fee,
+      paid_amount: 0,
+      status: 'Unpaid',
+    })
+    .select()
+    .single();
+
+  if (invoiceError) {
+    await supabase.from('visits').delete().eq('id', visit.id);
+    throw invoiceError;
+  }
+
+  const { data: finalVisit, error: finalVisitError } = await supabase
+    .from('visits')
+    .select('*, patients(*), doctors(*, profiles!user_id(full_name), departments(*))')
+    .eq('id', visit.id)
+    .single();
+
+  if (finalVisitError) throw finalVisitError;
+
+  // Socket update emission
+  try {
+    if (!socket.connected) {
+      socket.connect();
+    }
+    socket.emit('update-queue', { visitId: visit.id, status: 'Created' });
+  } catch (err) {
+    console.error('Socket emission failed:', err);
+  }
+
+  return {
+    visit: finalVisit as Visit,
+    invoice: invoice as Invoice,
   };
 }
 
@@ -236,92 +408,46 @@ export async function checkIsFirstVisit(patientId: number): Promise<boolean> {
 }
 
 /**
- * Create visit and associate a pending invoice.
- */
-export async function createVisit(visitData: VisitFormValues) {
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date();
-  endOfDay.setHours(23, 59, 59, 999);
-
-  const { count, error: countError } = await supabase
-    .from('visits')
-    .select('*', { count: 'exact', head: true })
-    .eq('doctor_id', visitData.doctor_id)
-    .gte('visit_date', startOfDay.toISOString())
-    .lte('visit_date', endOfDay.toISOString());
-
-  if (countError) throw countError;
-  const tokenNo = (count || 0) + 1;
-
-  const { data: visit, error: visitError } = await supabase
-    .from('visits')
-    .insert({
-      patient_id: visitData.patient_id,
-      doctor_id: visitData.doctor_id,
-      token_no: tokenNo,
-      chief_complaint: visitData.chief_complaint,
-      status: 'Created',
-    })
-    .select()
-    .single();
-
-  if (visitError) throw visitError;
-
-  const isFirst = await checkIsFirstVisit(visitData.patient_id);
-  const fee = isFirst ? (visitData.consultation_fee || 0) : 0;
-  const { data: invoice, error: invoiceError } = await supabase
-    .from('invoices')
-    .insert({
-      visit_id: visit.id,
-      patient_id: visitData.patient_id,
-      total_amount: fee,
-      discount: 0,
-      tax: 0,
-      final_amount: fee,
-      paid_amount: 0,
-      status: 'Unpaid',
-    })
-    .select()
-    .single();
-
-  if (invoiceError) {
-    await supabase.from('visits').delete().eq('id', visit.id);
-    throw invoiceError;
-  }
-
-  const { data: finalVisit, error: finalVisitError } = await supabase
-    .from('visits')
-    .select('*, patients(*), doctors(*, profiles!user_id(full_name), departments(*))')
-    .eq('id', visit.id)
-    .single();
-
-  if (finalVisitError) throw finalVisitError;
-
-  // Socket update emission
-  try {
-    if (!socket.connected) {
-      socket.connect();
-    }
-    socket.emit('update-queue', { visitId: visit.id, status: 'Created' });
-  } catch (err) {
-    console.error('Socket emission failed:', err);
-  }
-
-  return {
-    visit: finalVisit as Visit,
-    invoice: invoice as Invoice,
-  };
-}
-
-/**
  * Record payment for consultation fee, set invoice status to Paid, and update visit to Waiting.
  */
 export async function collectPayment(paymentData: PaymentFormValues) {
+  let targetInvoiceId = paymentData.invoice_id;
+
+  // Safeguard: Ensure invoice_id is valid and exists in invoices table
+  if (!targetInvoiceId || targetInvoiceId === 0) {
+    const { data: existingInvoice } = await supabase
+      .from('invoices')
+      .select('id')
+      .eq('visit_id', paymentData.visit_id)
+      .maybeSingle();
+
+    if (existingInvoice?.id) {
+      targetInvoiceId = existingInvoice.id;
+    } else {
+      const { data: newInvoice, error: invCreateErr } = await supabase
+        .from('invoices')
+        .insert({
+          visit_id: paymentData.visit_id,
+          patient_id: 1,
+          total_amount: paymentData.amount,
+          discount: 0,
+          tax: 0,
+          final_amount: paymentData.amount,
+          paid_amount: 0,
+          status: 'Unpaid',
+        })
+        .select()
+        .single();
+
+      if (invCreateErr) throw invCreateErr;
+      targetInvoiceId = newInvoice.id;
+    }
+  }
+
   const { data: payment, error: paymentError } = await supabase
     .from('payments')
     .insert({
-      invoice_id: paymentData.invoice_id,
+      invoice_id: targetInvoiceId,
       amount: paymentData.amount,
       payment_mode: paymentData.payment_mode,
       payment_status: 'Paid',
@@ -338,7 +464,7 @@ export async function collectPayment(paymentData: PaymentFormValues) {
       status: 'Paid',
       paid_amount: paymentData.amount,
     })
-    .eq('id', paymentData.invoice_id);
+    .eq('id', targetInvoiceId);
 
   if (invoiceError) throw invoiceError;
 

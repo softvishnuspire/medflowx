@@ -11,7 +11,8 @@ import {
   ChevronDown,
   Check,
   ArrowRight,
-  Loader2
+  Loader2,
+  Pill
 } from 'lucide-react';
 
 interface RoleOption {
@@ -48,6 +49,28 @@ const ROLES: RoleOption[] = [
     icon: Users,
     badgeColor: 'bg-teal-600/10 border-teal-500/20 text-teal-400 shadow-[0_0_12px_rgba(13,148,136,0.15)]',
     iconColor: 'text-teal-400'
+  },
+  {
+    id: 'doctor',
+    name: 'Doctor',
+    dbRoleName: 'Doctor',
+    description: 'Clinical consultation & EHR',
+    path: '/doctor',
+    defaultEmail: 'doctor@medflowx.com',
+    icon: Stethoscope,
+    badgeColor: 'bg-emerald-600/10 border-emerald-500/20 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.15)]',
+    iconColor: 'text-emerald-400'
+  },
+  {
+    id: 'pharmacy',
+    name: 'Pharmacist',
+    dbRoleName: 'Pharmacist',
+    description: 'Prescription verification & dispense',
+    path: '/pharmacy',
+    defaultEmail: 'pharmacy@medflowx.com',
+    icon: Pill,
+    badgeColor: 'bg-purple-600/10 border-purple-500/20 text-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.15)]',
+    iconColor: 'text-purple-400'
   }
 ];
 
