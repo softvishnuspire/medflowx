@@ -166,12 +166,12 @@ export async function registerPatient(patientData: PatientFormValues) {
     .from('patient_addresses')
     .insert({
       patient_id: patient.id,
-      address_line: patientData.address_line,
+      address_line: patientData.address_line || patientData.city || 'N/A',
       city: patientData.city,
       district: patientData.district || null,
       state: patientData.state,
       country: patientData.country || 'India',
-      pincode: patientData.pincode,
+      pincode: patientData.pincode || '000000',
     })
     .select()
     .single();

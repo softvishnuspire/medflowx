@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const patientSchema = z.object({
-  first_name: z.string().min(1, 'First name is required'),
+  first_name: z.string().min(1, 'Full name is required'),
   last_name: z.string().optional(),
   gender: z.enum(['Male', 'Female', 'Other'], {
     message: 'Gender is required',
@@ -25,15 +25,12 @@ export const patientSchema = z.object({
   medical_history: z.string().optional(),
   
   // Address fields
-  address_line: z.string().min(1, 'Address line is required'),
-  city: z.string().min(1, 'City is required'),
+  address_line: z.string().optional(),
+  city: z.string().min(1, 'Village / Town is required'),
   district: z.string().optional(),
   state: z.string().min(1, 'State is required'),
   country: z.string().optional(),
-  pincode: z
-    .string()
-    .min(6, 'Pincode must be at least 6 characters')
-    .regex(/^[0-9]{6}$/, 'Pincode must be 6 digits'),
+  pincode: z.string().optional(),
 });
 
 export type PatientFormValues = z.infer<typeof patientSchema>;
