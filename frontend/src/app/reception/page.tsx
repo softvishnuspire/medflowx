@@ -15,6 +15,7 @@ import BillingInvoicesList from '@/features/reception/payments/billing-invoices-
 import PaymentCollectionView from '@/features/reception/payments/payment-collection-view';
 import QueueView from '@/features/reception/queue/queue-view';
 import GlobalSearchView from '@/features/reception/search/global-search-view';
+import TreatmentsView from '@/features/reception/treatments/treatments-view';
 
 // Icons
 import {
@@ -29,7 +30,8 @@ import {
   LogOut,
   Stethoscope,
   Menu,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 
 type Tab =
@@ -39,6 +41,7 @@ type Tab =
   | 'visit'
   | 'queue'
   | 'payments'
+  | 'treatments'
   | 'search'
   | 'profile';
 
@@ -119,6 +122,7 @@ export default function ReceptionPage() {
     { id: 'visit' as const, label: 'Create Visit', icon: CalendarPlus },
     { id: 'queue' as const, label: "Today's Queue", icon: Clock },
     { id: 'payments' as const, label: 'Payments', icon: CreditCard },
+    { id: 'treatments' as const, label: 'Treatments', icon: Sparkles },
     { id: 'search' as const, label: 'Search', icon: Search },
   ];
 
@@ -306,6 +310,8 @@ export default function ReceptionPage() {
           )}
           
           {activeTab === 'queue' && <QueueView />}
+          
+          {activeTab === 'treatments' && <TreatmentsView />}
           
           {activeTab === 'search' && (
             <GlobalSearchView

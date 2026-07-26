@@ -109,3 +109,23 @@ export interface Payment {
   created_at: string;
   updated_at: string;
 }
+
+export type DiagnosisType = 'Hair Diagnosis' | 'Skin Diagnosis' | 'Both Hair & Skin';
+
+export type TreatmentPaymentMode = 'Cash' | 'UPI' | 'Debit/Credit Card';
+
+export interface Treatment {
+  id: number;
+  treatment_number: string;
+  patient_id: number;
+  diagnosis_name: string;
+  diagnosis_type: DiagnosisType;
+  treatment_amount: number;
+  payment_mode: TreatmentPaymentMode;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  created_by?: string | null;
+  patients?: Patient;
+}
+

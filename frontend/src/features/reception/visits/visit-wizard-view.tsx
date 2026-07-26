@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Patient, Department, Doctor } from '@/types/reception';
+import { Patient, Department, Doctor, DiagnosisType } from '@/types/reception';
 import { 
   getDepartments, 
   getDoctors, 
@@ -22,7 +22,9 @@ import {
   Activity, 
   Sparkles, 
   ArrowRight,
-  ArrowLeft
+  ArrowLeft,
+  Scissors,
+  Layers
 } from 'lucide-react';
 
 interface VisitWizardViewProps {
@@ -44,6 +46,7 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<Doctor | null>(null);
   const [chiefComplaint, setChiefComplaint] = useState('');
+  const [diagnosisType, setDiagnosisType] = useState<DiagnosisType>('Hair Diagnosis');
   const [isFirstVisit, setIsFirstVisit] = useState(true);
   
   // Data lists
@@ -154,11 +157,12 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
 
     setIsSubmitting(true);
     try {
+      const fullComplaint = `[${diagnosisType}] ${chiefComplaint.trim()}`;
       const { visit, invoice } = await createVisit({
         patient_id: selectedPatient.id,
         department_id: selectedDoc.department_id || 1,
         doctor_id: selectedDoc.id,
-        chief_complaint: chiefComplaint,
+        chief_complaint: fullComplaint,
         consultation_fee: isFirstVisit ? selectedDoc.consultation_fee : 0,
       });
 
@@ -387,12 +391,52 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
                   </label>
                   <textarea
                     placeholder="Enter patient symptoms or reason for visit (e.g. Fever since 3 days, headaches)"
-                    rows={4}
+                    rows={3}
                     value={chiefComplaint}
                     onChange={(e) => setChiefComplaint(e.target.value)}
                     className="w-full p-3 border border-zinc-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none placeholder-zinc-400 cursor-text"
                   />
                   <span className="text-zinc-400 text-[10px] mt-1 block">Describe symptoms in short sentences for the doctor's review.</span>
+                </div>
+
+                {/* Diagnosis Type Radio Buttons */}
+                <div className="pt-1">
+                  <label className="block text-xs font-bold text-zinc-700 mb-2 font-heading">
+                    Select Diagnosis Type *
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {[
+                      { type: 'Hair Diagnosis' as DiagnosisType, label: 'Hair Diagnosis', icon: Scissors },
+                      { type: 'Skin Diagnosis' as DiagnosisType, label: 'Skin Diagnosis', icon: Sparkles },
+                      { type: 'Both Hair & Skin' as DiagnosisType, label: 'Both Hair & Skin', icon: Layers },
+                    ].map((item) => {
+                      const Icon = item.icon;
+                      const isSelected = diagnosisType === item.type;
+                      return (
+                        <label
+                          key={item.type}
+                          onClick={() => setDiagnosisType(item.type)}
+                          className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                            isSelected
+                              ? 'border-primary bg-primary/10 font-bold text-zinc-900 shadow-xs'
+                              : 'border-zinc-200 hover:border-zinc-300 bg-white text-zinc-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name="visit_diagnosis_type"
+                              checked={isSelected}
+                              onChange={() => {}}
+                              className="h-4 w-4 text-primary accent-primary focus:ring-primary"
+                            />
+                            <span className="text-xs font-bold">{item.label}</span>
+                          </div>
+                          <Icon className={`w-4 h-4 ${isSelected ? 'text-primary' : 'text-zinc-400'}`} />
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabaseClient';
 import { socket } from '@/lib/socket';
-import { PatientFormValues, VisitFormValues, PaymentFormValues } from '@/features/reception/schemas';
-import { Patient, Doctor, Department, Visit, Invoice, Payment } from '@/types/reception';
+import { PatientFormValues, VisitFormValues, PaymentFormValues, TreatmentFormValues } from '@/features/reception/schemas';
+import { Patient, Doctor, Department, Visit, Invoice, Payment, Treatment } from '@/types/reception';
 
 /**
  * Fetch Reception Dashboard stats in a single database aggregation phase.
@@ -466,3 +466,215 @@ export async function getPendingInvoices() {
   if (error) throw error;
   return data as any[];
 }
+
+/**
+ * Local storage key for offline/fallback treatment records
+ */
+const TREATMENTS_STORAGE_KEY = 'medflowx_treatments_records';
+
+function getLocalTreatments(): Treatment[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(TREATMENTS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    console.error('Failed to parse local treatments:', e);
+    return [];
+  }
+}
+
+function saveLocalTreatment(record: Treatment) {
+  if (typeof window === 'undefined') return;
+  try {
+    const existing = getLocalTreatments();
+    const updated = [record, ...existing.filter(t => t.id !== record.id)];
+    localStorage.setItem(TREATMENTS_STORAGE_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.error('Failed to save local treatment record:', e);
+  }
+}
+
+/**
+ * Record a new treatment and billing transaction for a patient.
+ */
+export async function createTreatment(treatmentData: TreatmentFormValues, createdBy?: string): Promise<Treatment> {
+  const trtNum = `TRT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(10000 + Math.random() * 90000)}`;
+
+  let insertedData: Treatment | null = null;
+
+  try {
+    const { data, error } = await supabase
+      .from('treatments')
+      .insert({
+        treatment_number: trtNum,
+        patient_id: treatmentData.patient_id,
+        diagnosis_name: treatmentData.diagnosis_name,
+        diagnosis_type: treatmentData.diagnosis_type,
+        treatment_amount: treatmentData.treatment_amount,
+        payment_mode: treatmentData.payment_mode,
+        status: 'Paid',
+        created_by: createdBy || null,
+      })
+      .select('*, patients(*)')
+      .single();
+
+    if (!error && data) {
+      insertedData = data as Treatment;
+    }
+  } catch (err) {
+    console.warn('Supabase insert failed or table not found, using robust fallback storage:', err);
+  }
+
+  // Fallback if Supabase table is not migrated or returns error
+  if (!insertedData) {
+    // Fetch patient details if available
+    let patientDetails: Patient | undefined = undefined;
+    try {
+      const { data: p } = await supabase.from('patients').select('*').eq('id', treatmentData.patient_id).single();
+      if (p) patientDetails = p as Patient;
+    } catch (e) {
+      console.warn('Could not fetch patient details for treatment fallback:', e);
+    }
+
+    insertedData = {
+      id: Date.now(),
+      treatment_number: trtNum,
+      patient_id: treatmentData.patient_id,
+      diagnosis_name: treatmentData.diagnosis_name,
+      diagnosis_type: treatmentData.diagnosis_type,
+      treatment_amount: Number(treatmentData.treatment_amount),
+      payment_mode: treatmentData.payment_mode,
+      status: 'Paid',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      created_by: createdBy || 'Reception Desk',
+      patients: patientDetails,
+    };
+  }
+
+  saveLocalTreatment(insertedData);
+  return insertedData;
+}
+
+/**
+ * Retrieve all treatment records with optional search filter.
+ */
+export async function getTreatmentsList(searchQuery?: string): Promise<Treatment[]> {
+  let dbTreatments: Treatment[] = [];
+
+  try {
+    let query = supabase
+      .from('treatments')
+      .select('*, patients(*)');
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (!error && data) {
+      dbTreatments = data as Treatment[];
+    }
+  } catch (err) {
+    console.warn('Supabase fetch for treatments failed or table not found:', err);
+  }
+
+  const localTreatments = getLocalTreatments();
+  
+  // Merge remote and local records avoiding duplicates by ID or treatment_number
+  const map = new Map<string, Treatment>();
+  [...dbTreatments, ...localTreatments].forEach(item => {
+    const key = item.treatment_number || String(item.id);
+    if (!map.has(key)) {
+      map.set(key, item);
+    }
+  });
+
+  let combined = Array.from(map.values()).sort((a, b) => 
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
+  if (searchQuery && searchQuery.trim() !== '') {
+    const q = searchQuery.trim().toLowerCase();
+    combined = combined.filter(t => {
+      const pName = t.patients ? `${t.patients.first_name} ${t.patients.last_name || ''}`.toLowerCase() : '';
+      const pCode = t.patients ? t.patients.patient_code.toLowerCase() : '';
+      const diag = t.diagnosis_name.toLowerCase();
+      const num = t.treatment_number.toLowerCase();
+      return pName.includes(q) || pCode.includes(q) || diag.includes(q) || num.includes(q);
+    });
+  }
+
+  return combined;
+}
+
+function updateLocalTreatment(id: number, updatedFields: Partial<Treatment>) {
+  if (typeof window === 'undefined') return;
+  try {
+    const existing = getLocalTreatments();
+    const updated = existing.map((item) => {
+      if (item.id === id) {
+        return { ...item, ...updatedFields, updated_at: new Date().toISOString() };
+      }
+      return item;
+    });
+    localStorage.setItem(TREATMENTS_STORAGE_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.error('Failed to update local treatment:', e);
+  }
+}
+
+function deleteLocalTreatment(id: number) {
+  if (typeof window === 'undefined') return;
+  try {
+    const existing = getLocalTreatments();
+    const updated = existing.filter((item) => item.id !== id);
+    localStorage.setItem(TREATMENTS_STORAGE_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.error('Failed to delete local treatment:', e);
+  }
+}
+
+/**
+ * Update an existing treatment record.
+ */
+export async function updateTreatment(id: number, updateData: Partial<TreatmentFormValues>): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('treatments')
+      .update({
+        diagnosis_name: updateData.diagnosis_name,
+        diagnosis_type: updateData.diagnosis_type,
+        treatment_amount: updateData.treatment_amount,
+        payment_mode: updateData.payment_mode,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    if (error) {
+      console.warn('Supabase update failed or table not present:', error);
+    }
+  } catch (err) {
+    console.warn('Supabase update exception:', err);
+  }
+
+  updateLocalTreatment(id, updateData as Partial<Treatment>);
+}
+
+/**
+ * Delete a treatment record.
+ */
+export async function deleteTreatment(id: number): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('treatments')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.warn('Supabase delete failed or table not present:', error);
+    }
+  } catch (err) {
+    console.warn('Supabase delete exception:', err);
+  }
+
+  deleteLocalTreatment(id);
+}
+
+

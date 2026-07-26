@@ -59,3 +59,20 @@ export const paymentSchema = z.object({
 });
 
 export type PaymentFormValues = z.infer<typeof paymentSchema>;
+
+export const treatmentSchema = z.object({
+  patient_id: z.number({ message: 'Please select a patient' }).min(1, 'Please select a patient'),
+  diagnosis_name: z.string().min(1, 'Diagnosis name is required'),
+  diagnosis_type: z.enum(['Hair Diagnosis', 'Skin Diagnosis', 'Both Hair & Skin'], {
+    message: 'Please select a diagnosis type',
+  }),
+  treatment_amount: z
+    .number({ message: 'Treatment amount must be a number' })
+    .positive('Treatment amount must be a positive number greater than 0'),
+  payment_mode: z.enum(['Cash', 'UPI', 'Debit/Credit Card'], {
+    message: 'Please select a payment mode',
+  }),
+});
+
+export type TreatmentFormValues = z.infer<typeof treatmentSchema>;
+
