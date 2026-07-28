@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 
 // Subviews
 import DashboardView from '@/features/admin/dashboard-view';
+import StatisticsView from '@/features/admin/statistics-view';
 import UsersView from '@/features/admin/users-view';
 import PatientsView from '@/features/admin/patients-view';
 import PatientDetailView from '@/features/admin/patient-detail-view';
@@ -19,6 +20,7 @@ import {
   CalendarCheck,
   CreditCard,
   BarChart3,
+  PieChart,
   User,
   LogOut,
   Stethoscope,
@@ -29,6 +31,7 @@ import {
 
 type Tab =
   | 'dashboard'
+  | 'statistics'
   | 'users'
   | 'patients'
   | 'visits'
@@ -78,6 +81,7 @@ export default function AdminPage() {
 
   const menuItems = [
     { id: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'statistics' as const, label: 'Statistics', icon: PieChart },
     { id: 'users' as const, label: 'Users', icon: Users },
     { id: 'patients' as const, label: 'Patients', icon: Users },
     { id: 'visits' as const, label: 'Visits', icon: CalendarCheck },
@@ -214,6 +218,8 @@ export default function AdminPage() {
         <div className="flex-1 overflow-y-auto p-6 md:p-8 max-w-7xl w-full mx-auto font-body">
           {activeTab === 'dashboard' && <DashboardView />}
           
+          {activeTab === 'statistics' && <StatisticsView />}
+
           {activeTab === 'users' && <UsersView />}
           
           {activeTab === 'patients' && !selectedPatientId && (

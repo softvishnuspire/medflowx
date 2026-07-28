@@ -108,6 +108,12 @@ graph TD
   - **Storage Bucket Path Fix**: Corrected bucket path key in `uploadPrescriptionPhoto` in [reception.ts](file:///c:/Users/phani/Desktop/office-files/medical-tracker-trueupmedia/frontend/src/services/reception.ts) to upload directly to `fileName` instead of double-nested `prescriptions/${fileName}`.
   - **Dual Storage Persistence**: Enhanced `submitPhysicalPrescription` in [reception.ts](file:///c:/Users/phani/Desktop/office-files/medical-tracker-trueupmedia/frontend/src/services/reception.ts) to persist physical prescription image URLs & cost into the `prescriptions` table (using structured JSON payloads) as well as updating `visits` table columns.
   - **Robust Doctor Viewer**: Updated `loadPatientVisits` and rendering in [patients-view.tsx](file:///c:/Users/phani/Desktop/office-files/medical-tracker-trueupmedia/frontend/src/features/doctor/patients-view.tsx) with a dual parser (inspecting both `visits` columns and joined `prescriptions` records) so physical prescription photos and costs display reliably in the Doctor Panel under any database state.
+- **Admin Statistics Menu & Comprehensive Analytics Dashboard**:
+  - **Admin Navigation**: Added the **Statistics** menu option with icon into [admin/page.tsx](file:///c:/Users/phani/Desktop/office-files/medical-tracker-trueupmedia/frontend/src/app/admin/page.tsx).
+  - **Statistics Component**: Built [statistics-view.tsx](file:///c:/Users/phani/Desktop/office-files/medical-tracker-trueupmedia/frontend/src/features/admin/statistics-view.tsx) rendering metric cards for Total Revenue, Hair Revenue, Skin Revenue, Pharmacy Revenue, Treatments Revenue, Total Patients, and Total Visits.
+  - **Flexible Filters**: Added Date Range selectors (Start Date, End Date, Today, 30 Days) and a "Full Data (All Time)" mode toggle.
+  - **Data Service**: Added `getClinicStatisticsData` in [admin.ts](file:///c:/Users/phani/Desktop/office-files/medical-tracker-trueupmedia/frontend/src/services/admin.ts) supporting both local storage mock data and Supabase database aggregations.
+
 
 
 

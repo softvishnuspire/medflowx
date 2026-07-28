@@ -112,6 +112,28 @@ export interface PaymentSummaryReport {
   amount: number;
 }
 
+export interface DepartmentRevenueReport {
+  departmentId: number | string;
+  departmentName: string;
+  visitCount: number;
+  revenue: number;
+}
+
+export interface ClinicStatisticsData {
+  totalRevenue: number;
+  hairRevenue: number;
+  skinRevenue: number;
+  pharmacyRevenue: number;
+  treatmentRevenue: number;
+  totalPatients: number;
+  totalVisits: number;
+  dailyRevenue: DailyRevenueReport[];
+  monthlyRevenue: MonthlyRevenueReport[];
+  departmentRevenues: DepartmentRevenueReport[];
+  doctorVisits: DoctorVisitsReport[];
+  paymentSummary: PaymentSummaryReport[];
+}
+
 export interface ClinicReportData {
   dailyRevenue: DailyRevenueReport[];
   monthlyRevenue: MonthlyRevenueReport[];
@@ -120,3 +142,4 @@ export interface ClinicReportData {
   doctorVisits: DoctorVisitsReport[];
   paymentSummary: PaymentSummaryReport[];
 }
+

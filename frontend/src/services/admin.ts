@@ -5,6 +5,8 @@ import {
   RecentActivityItem, 
   AuditLog, 
   ClinicReportData,
+  ClinicStatisticsData,
+  DepartmentRevenueReport,
   Role
 } from '@/types/admin';
 import { 
@@ -1489,3 +1491,266 @@ export async function getDoctors(): Promise<Doctor[]> {
     departments: doc.departments,
   })) as Doctor[];
 }
+
+/**
+ * Fetch detailed clinic statistics data including total revenue, hair revenue, skin revenue,
+ * pharmacy revenue, treatment revenue, patient counts, doctor & department breakdowns.
+ */
+export async function getClinicStatisticsData(params: {
+  start?: string;
+  end?: string;
+  isAllTime?: boolean;
+}): Promise<ClinicStatisticsData> {
+  const { start: startStr, end: endStr, isAllTime = false } = params;
+
+  let start = new Date(startStr || '2020-01-01');
+  let end = new Date(endStr || new Date().toISOString().slice(0, 10));
+  start.setHours(0, 0, 0, 0);
+  end.setHours(23, 59, 59, 999);
+
+  if (!isSupabaseConfigured) {
+    const payments = getLocalPayments();
+    const patients = getLocalPatients();
+    const visits = getLocalVisits();
+    const profiles = getLocalProfiles();
+    const doctors = getLocalDoctors();
+
+    // Local Storage Pharmacy Sales fallback check
+    const pharmacySales = getLocalData<any[]>('medflowx_pharmacy_sales', []);
+
+    // Filter payments
+    const filteredPayments = payments.filter(p => {
+      if (p.payment_status !== 'Paid') return false;
+      if (isAllTime) return true;
+      const time = new Date(p.created_at).getTime();
+      return time >= start.getTime() && time <= end.getTime();
+    });
+
+    const filteredPatients = patients.filter(p => {
+      if (isAllTime) return true;
+      const time = new Date(p.created_at).getTime();
+      return time >= start.getTime() && time <= end.getTime();
+    });
+
+    const filteredVisits = visits.filter(v => {
+      if (isAllTime) return true;
+      const time = new Date(v.visit_date).getTime();
+      return time >= start.getTime() && time <= end.getTime();
+    });
+
+    // 1. Total Revenue
+    const totalRevenue = filteredPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+    // 2. Department & Doctor Revenues
+    const deptRevMap: Record<string, { id: number | string; name: string; count: number; revenue: number }> = {};
+    const docRevMap: Record<number | string, { doctorName: string; departmentName: string; visitCount: number; revenue: number }> = {};
+
+    let hairRevenue = 0;
+    let skinRevenue = 0;
+    let treatmentRevenue = 0;
+
+    filteredVisits.forEach(v => {
+      const doc = doctors.find(d => d.id === v.doctor_id);
+      const docProfile = doc ? profiles.find(p => p.id === doc.user_id) : null;
+      const dept = doc ? MOCK_DEPARTMENTS.find(d => d.id === doc.department_id) : null;
+
+      const deptName = dept ? dept.department_name : 'General Care';
+      const docName = docProfile ? docProfile.full_name : `Doctor ${v.doctor_id || ''}`;
+      const fee = doc ? Number(doc.consultation_fee || 0) : 300;
+
+      // Department Map
+      if (!deptRevMap[deptName]) {
+        deptRevMap[deptName] = { id: dept ? dept.id : 'gen', name: deptName, count: 0, revenue: 0 };
+      }
+      deptRevMap[deptName].count += 1;
+      deptRevMap[deptName].revenue += fee;
+
+      // Doctor Map
+      const docKey = v.doctor_id || docName;
+      if (!docRevMap[docKey]) {
+        docRevMap[docKey] = { doctorName: docName, departmentName: deptName, visitCount: 0, revenue: 0 };
+      }
+      docRevMap[docKey].visitCount += 1;
+      docRevMap[docKey].revenue += fee;
+
+      // Check Hair / Skin
+      const cleanDept = deptName.toLowerCase();
+      if (cleanDept.includes('hair') || cleanDept.includes('trichology')) {
+        hairRevenue += fee;
+      } else if (cleanDept.includes('skin') || cleanDept.includes('dermatology')) {
+        skinRevenue += fee;
+      } else {
+        treatmentRevenue += fee;
+      }
+    });
+
+    // 3. Pharmacy Revenue
+    const filteredPharmacySales = pharmacySales.filter(s => {
+      if (isAllTime) return true;
+      const time = new Date(s.created_at || Date.now()).getTime();
+      return time >= start.getTime() && time <= end.getTime();
+    });
+    const pharmacyRevenue = filteredPharmacySales.reduce((sum, s) => sum + Number(s.final_amount || s.total_amount || 0), 0);
+
+    // If total revenue > sum of department + pharmacy, assign remainder to treatments
+    if (totalRevenue > (hairRevenue + skinRevenue + pharmacyRevenue)) {
+      treatmentRevenue = Math.max(treatmentRevenue, totalRevenue - (hairRevenue + skinRevenue + pharmacyRevenue));
+    }
+
+    // Daily & Monthly Trends
+    const dailyRevMap: Record<string, { amount: number; count: number }> = {};
+    filteredPayments.forEach(p => {
+      const dateStr = new Date(p.created_at).toLocaleDateString();
+      if (!dailyRevMap[dateStr]) dailyRevMap[dateStr] = { amount: 0, count: 0 };
+      dailyRevMap[dateStr].amount += Number(p.amount);
+      dailyRevMap[dateStr].count += 1;
+    });
+
+    const dailyRevenue = Object.entries(dailyRevMap).map(([date, val]) => ({ date, amount: val.amount, count: val.count }));
+    const departmentRevenues = Object.values(deptRevMap).map(d => ({
+      departmentId: d.id,
+      departmentName: d.name,
+      visitCount: d.count,
+      revenue: d.revenue
+    }));
+    const doctorVisits = Object.values(docRevMap);
+
+    // Payment Mode Summary
+    const paySummaryMap: Record<string, { count: number; amount: number }> = {};
+    filteredPayments.forEach(p => {
+      const method = p.payment_mode || 'Cash';
+      if (!paySummaryMap[method]) paySummaryMap[method] = { count: 0, amount: 0 };
+      paySummaryMap[method].count += 1;
+      paySummaryMap[method].amount += Number(p.amount);
+    });
+    const paymentSummary = Object.entries(paySummaryMap).map(([method, val]) => ({ method, count: val.count, amount: val.amount }));
+
+    return {
+      totalRevenue,
+      hairRevenue,
+      skinRevenue,
+      pharmacyRevenue,
+      treatmentRevenue,
+      totalPatients: filteredPatients.length,
+      totalVisits: filteredVisits.length,
+      dailyRevenue,
+      monthlyRevenue: [],
+      departmentRevenues,
+      doctorVisits,
+      paymentSummary
+    };
+  }
+
+  // Supabase Implementation
+  const startIso = start.toISOString();
+  const endIso = end.toISOString();
+
+  let paymentsQuery = supabase.from('payments').select('amount, payment_mode, created_at, invoice_id').eq('payment_status', 'Paid');
+  let patientsQuery = supabase.from('patients').select('id', { count: 'exact', head: true });
+  let visitsQuery = supabase.from('visits').select('id, visit_date, doctor_id, doctors(department_id, departments(department_name), profiles!user_id(full_name))');
+  let pharmacyQuery = supabase.from('pharmacy_sales').select('final_amount, created_at');
+
+  if (!isAllTime) {
+    paymentsQuery = paymentsQuery.gte('created_at', startIso).lte('created_at', endIso);
+    patientsQuery = patientsQuery.gte('created_at', startIso).lte('created_at', endIso);
+    visitsQuery = visitsQuery.gte('visit_date', startIso).lte('visit_date', endIso);
+    pharmacyQuery = pharmacyQuery.gte('created_at', startIso).lte('created_at', endIso);
+  }
+
+  const [paymentsRes, patientsRes, visitsRes, pharmacyRes] = await Promise.all([
+    paymentsQuery,
+    patientsQuery,
+    visitsQuery,
+    pharmacyQuery
+  ]);
+
+  const paymentsList = paymentsRes.data || [];
+  const totalPatients = patientsRes.count || 0;
+  const visitsList = visitsRes.data || [];
+  const pharmacySalesList = pharmacyRes.data || [];
+
+  const totalRevenue = paymentsList.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+  const pharmacyRevenue = pharmacySalesList.reduce((sum: number, s: any) => sum + Number(s.final_amount || 0), 0);
+
+  let hairRevenue = 0;
+  let skinRevenue = 0;
+  let treatmentRevenue = 0;
+
+  const deptRevMap: Record<string, { id: string | number; name: string; count: number; revenue: number }> = {};
+  const docRevMap: Record<string, { doctorName: string; departmentName: string; visitCount: number; revenue: number }> = {};
+
+  visitsList.forEach((v: any) => {
+    const deptName = v.doctors?.departments?.department_name || 'General Care';
+    const docName = v.doctors?.profiles?.full_name || 'Medical Specialist';
+    const fee = 350;
+
+    if (!deptRevMap[deptName]) {
+      deptRevMap[deptName] = { id: deptName, name: deptName, count: 0, revenue: 0 };
+    }
+    deptRevMap[deptName].count += 1;
+    deptRevMap[deptName].revenue += fee;
+
+    const docKey = docName;
+    if (!docRevMap[docKey]) {
+      docRevMap[docKey] = { doctorName: docName, departmentName: deptName, visitCount: 0, revenue: 0 };
+    }
+    docRevMap[docKey].visitCount += 1;
+    docRevMap[docKey].revenue += fee;
+
+    const cleanDept = deptName.toLowerCase();
+    if (cleanDept.includes('hair') || cleanDept.includes('trichology')) {
+      hairRevenue += fee;
+    } else if (cleanDept.includes('skin') || cleanDept.includes('dermatology')) {
+      skinRevenue += fee;
+    } else {
+      treatmentRevenue += fee;
+    }
+  });
+
+  if (totalRevenue > (hairRevenue + skinRevenue + pharmacyRevenue)) {
+    treatmentRevenue = Math.max(treatmentRevenue, totalRevenue - (hairRevenue + skinRevenue + pharmacyRevenue));
+  }
+
+  // Daily trend
+  const dailyRevMap: Record<string, { amount: number; count: number }> = {};
+  paymentsList.forEach((p: any) => {
+    const dateStr = new Date(p.created_at).toLocaleDateString();
+    if (!dailyRevMap[dateStr]) dailyRevMap[dateStr] = { amount: 0, count: 0 };
+    dailyRevMap[dateStr].amount += Number(p.amount);
+    dailyRevMap[dateStr].count += 1;
+  });
+
+  const dailyRevenue = Object.entries(dailyRevMap).map(([date, val]) => ({ date, amount: val.amount, count: val.count }));
+  const departmentRevenues = Object.values(deptRevMap).map(d => ({
+    departmentId: d.id,
+    departmentName: d.name,
+    visitCount: d.count,
+    revenue: d.revenue
+  }));
+  const doctorVisits = Object.values(docRevMap);
+
+  const paySummaryMap: Record<string, { count: number; amount: number }> = {};
+  paymentsList.forEach((p: any) => {
+    const method = p.payment_mode || 'Cash';
+    if (!paySummaryMap[method]) paySummaryMap[method] = { count: 0, amount: 0 };
+    paySummaryMap[method].count += 1;
+    paySummaryMap[method].amount += Number(p.amount);
+  });
+  const paymentSummary = Object.entries(paySummaryMap).map(([method, val]) => ({ method, count: val.count, amount: val.amount }));
+
+  return {
+    totalRevenue,
+    hairRevenue,
+    skinRevenue,
+    pharmacyRevenue,
+    treatmentRevenue,
+    totalPatients,
+    totalVisits: visitsList.length,
+    dailyRevenue,
+    monthlyRevenue: [],
+    departmentRevenues,
+    doctorVisits,
+    paymentSummary
+  };
+}
+
