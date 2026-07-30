@@ -19,7 +19,11 @@ import {
   Phone,
   Calendar,
   RotateCw,
-  Trash2
+  Trash2,
+  Banknote,
+  CreditCard,
+  QrCode,
+  Lock
 } from 'lucide-react';
 
 interface Patient {
@@ -41,6 +45,8 @@ interface Visit {
   prescription_image_front?: string | null;
   prescription_image_back?: string | null;
   prescription_amount?: number | null;
+  payment_mode?: string | null;
+  prescriptions?: any[];
   doctors?: {
     profiles?: {
       full_name: string;
@@ -70,6 +76,7 @@ export default function PharmacyPage() {
   const [backPreview, setBackPreview] = useState<string | null>(null);
 
   const [amount, setAmount] = useState<string>('');
+  const [paymentMode, setPaymentMode] = useState<'Cash' | 'Card' | 'UPI'>('Cash');
   const [submitting, setSubmitting] = useState(false);
 
   // Initial load: recent patients
@@ -117,6 +124,7 @@ export default function PharmacyPage() {
     setBackPhoto(null);
     setBackPreview(null);
     setAmount('');
+    setPaymentMode('Cash');
     try {
       setLoadingVisits(true);
       const res = await getPatientById(patient.id);
@@ -127,9 +135,18 @@ export default function PharmacyPage() {
       }
     } catch (err: any) {
       console.error('Error fetching patient visits:', err.message);
-    } fontFinally: {
+    } finally {
       setLoadingVisits(false);
     }
+  };
+
+  // Check if a visit has already been submitted
+  const isVisitSubmitted = (visit: Visit | null) => {
+    if (!visit) return false;
+    if (['Prescribed', 'Dispensed', 'Closed'].includes(visit.status)) return true;
+    if (visit.prescription_image_front) return true;
+    if (visit.prescriptions && visit.prescriptions.length > 0) return true;
+    return false;
   };
 
   // Image Selection Handlers (JPEG & PNG only)
@@ -167,6 +184,11 @@ export default function PharmacyPage() {
       return;
     }
 
+    if (isVisitSubmitted(selectedVisit)) {
+      alert('This visit already has an uploaded prescription. Pharmacist can only submit once per visit.');
+      return;
+    }
+
     if (!frontPhoto) {
       alert('Front photo of physical prescription is required.');
       return;
@@ -185,6 +207,8 @@ export default function PharmacyPage() {
         frontImage: frontPhoto,
         backImage: backPhoto,
         amount: numericAmount,
+        paymentMode: paymentMode,
+        patientId: selectedPatient?.id,
       });
 
       alert('Physical prescription uploaded and transaction recorded successfully!');
@@ -195,10 +219,16 @@ export default function PharmacyPage() {
       setBackPhoto(null);
       setBackPreview(null);
       setAmount('');
+      setPaymentMode('Cash');
       
       if (selectedPatient) {
         const res = await getPatientById(selectedPatient.id);
-        setPatientVisits(res.visits as unknown as Visit[]);
+        const updatedVisits = (res.visits || []) as unknown as Visit[];
+        setPatientVisits(updatedVisits);
+        if (updatedVisits.length > 0) {
+          const match = updatedVisits.find(v => String(v.id) === String(selectedVisit.id));
+          setSelectedVisit(match || updatedVisits[0]);
+        }
       }
     } catch (err: any) {
       console.error(err);
@@ -207,6 +237,8 @@ export default function PharmacyPage() {
       setSubmitting(false);
     }
   };
+
+  const submitted = isVisitSubmitted(selectedVisit);
 
   return (
     <div className="pharmacy-theme font-body text-text-custom bg-bg-custom flex h-screen overflow-hidden">
@@ -399,15 +431,33 @@ export default function PharmacyPage() {
                           }}
                           className="bg-white border border-zinc-200 text-xs font-bold text-zinc-800 py-2 px-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary cursor-pointer"
                         >
-                          {patientVisits.map((v) => (
-                            <option key={v.id} value={v.id}>
-                              Visit: {new Date(v.visit_date).toLocaleDateString()} ({v.chief_complaint || 'General Visit'})
-                            </option>
-                          ))}
+                          {patientVisits.map((v) => {
+                            const visSub = isVisitSubmitted(v);
+                            return (
+                              <option key={v.id} value={v.id}>
+                                Visit: {new Date(v.visit_date).toLocaleDateString()} ({v.chief_complaint || 'General Visit'}) - {visSub ? '✓ Submitted' : 'Pending'}
+                              </option>
+                            );
+                          })}
                         </select>
                       </div>
                     )}
                   </div>
+
+                  {/* Submission Restriction Alert Banner */}
+                  {submitted && (
+                    <div className="mx-6 mt-6 p-4 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-900 flex items-start gap-3 shadow-xs">
+                      <Lock className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="font-bold text-xs uppercase tracking-wider text-emerald-900 font-heading">
+                          Prescription Already Submitted (1 Submission Allowed Per Visit)
+                        </h4>
+                        <p className="text-xs text-emerald-700 font-medium mt-0.5">
+                          This visit has already been completed and processed by the pharmacist. Further edits or resubmissions are disabled for safety and transaction tracking.
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Upload Form */}
                   <form onSubmit={handleSubmitPrescription} className="p-6 space-y-6 flex-1">
@@ -427,31 +477,36 @@ export default function PharmacyPage() {
                         {/* Front Photo (Mandatory) */}
                         <div className="space-y-2">
                           <label className="block text-xs font-bold text-zinc-700">
-                            Front Photo <span className="text-rose-500">* (Required)</span>
+                            Front Photo {!submitted && <span className="text-rose-500">* (Required)</span>}
                           </label>
                           
-                          {frontPreview ? (
+                          {frontPreview || selectedVisit?.prescription_image_front ? (
                             <div className="relative aspect-4/3 rounded-xl overflow-hidden border-2 border-primary bg-zinc-100 group shadow-xs">
-                              <img src={frontPreview} alt="Front Prescription" className="w-full h-full object-cover" />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setFrontPhoto(null);
-                                  setFrontPreview(null);
-                                }}
-                                className="absolute top-2 right-2 p-1.5 bg-rose-600 text-white rounded-lg opacity-90 hover:opacity-100 transition-opacity cursor-pointer shadow-md"
-                                title="Remove Image"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
+                              <img src={frontPreview || selectedVisit?.prescription_image_front || ''} alt="Front Prescription" className="w-full h-full object-cover" />
+                              {!submitted && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setFrontPhoto(null);
+                                    setFrontPreview(null);
+                                  }}
+                                  className="absolute top-2 right-2 p-1.5 bg-rose-600 text-white rounded-lg opacity-90 hover:opacity-100 transition-opacity cursor-pointer shadow-md"
+                                  title="Remove Image"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
                             </div>
                           ) : (
-                            <label className="flex flex-col items-center justify-center aspect-4/3 rounded-xl border-2 border-dashed border-zinc-200 hover:border-primary/50 bg-zinc-50/50 hover:bg-primary/5 cursor-pointer transition-all p-4 text-center">
+                            <label className={`flex flex-col items-center justify-center aspect-4/3 rounded-xl border-2 border-dashed border-zinc-200 p-4 text-center ${
+                              submitted ? 'bg-zinc-100 cursor-not-allowed opacity-60' : 'hover:border-primary/50 bg-zinc-50/50 hover:bg-primary/5 cursor-pointer transition-all'
+                            }`}>
                               <Upload className="h-8 w-8 text-primary mb-2" />
                               <span className="text-xs font-bold text-zinc-700">Upload Front Photo</span>
                               <span className="text-[10px] text-zinc-400 mt-1">JPEG or PNG formats</span>
                               <input
                                 type="file"
+                                disabled={submitted}
                                 accept="image/jpeg,image/jpg,image/png"
                                 onChange={handleFrontPhotoSelect}
                                 className="hidden"
@@ -466,28 +521,33 @@ export default function PharmacyPage() {
                             Back Photo <span className="text-zinc-400 font-normal">(Optional)</span>
                           </label>
                           
-                          {backPreview ? (
+                          {backPreview || selectedVisit?.prescription_image_back ? (
                             <div className="relative aspect-4/3 rounded-xl overflow-hidden border-2 border-primary bg-zinc-100 group shadow-xs">
-                              <img src={backPreview} alt="Back Prescription" className="w-full h-full object-cover" />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setBackPhoto(null);
-                                  setBackPreview(null);
-                                }}
-                                className="absolute top-2 right-2 p-1.5 bg-rose-600 text-white rounded-lg opacity-90 hover:opacity-100 transition-opacity cursor-pointer shadow-md"
-                                title="Remove Image"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
+                              <img src={backPreview || selectedVisit?.prescription_image_back || ''} alt="Back Prescription" className="w-full h-full object-cover" />
+                              {!submitted && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setBackPhoto(null);
+                                    setBackPreview(null);
+                                  }}
+                                  className="absolute top-2 right-2 p-1.5 bg-rose-600 text-white rounded-lg opacity-90 hover:opacity-100 transition-opacity cursor-pointer shadow-md"
+                                  title="Remove Image"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
                             </div>
                           ) : (
-                            <label className="flex flex-col items-center justify-center aspect-4/3 rounded-xl border-2 border-dashed border-zinc-200 hover:border-primary/50 bg-zinc-50/50 hover:bg-primary/5 cursor-pointer transition-all p-4 text-center">
+                            <label className={`flex flex-col items-center justify-center aspect-4/3 rounded-xl border-2 border-dashed border-zinc-200 p-4 text-center ${
+                              submitted ? 'bg-zinc-100 cursor-not-allowed opacity-60' : 'hover:border-primary/50 bg-zinc-50/50 hover:bg-primary/5 cursor-pointer transition-all'
+                            }`}>
                               <Upload className="h-8 w-8 text-zinc-400 mb-2" />
                               <span className="text-xs font-bold text-zinc-700">Upload Back Photo</span>
                               <span className="text-[10px] text-zinc-400 mt-1">JPEG or PNG formats</span>
                               <input
                                 type="file"
+                                disabled={submitted}
                                 accept="image/jpeg,image/jpg,image/png"
                                 onChange={handleBackPhotoSelect}
                                 className="hidden"
@@ -498,35 +558,94 @@ export default function PharmacyPage() {
                       </div>
                     </div>
 
-                    {/* Amount / Cost Input */}
-                    <div className="space-y-2 border-t border-zinc-150 pt-5">
-                      <label className="block text-xs font-bold text-zinc-800 font-heading">
-                        Prescription Amount / Cost (₹) <span className="text-rose-500">*</span>
-                      </label>
-                      <div className="relative max-w-sm">
-                        <IndianRupee className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                        <input
-                          type="number"
-                          step="1"
-                          min="0"
-                          placeholder="Enter prescription cost (e.g. 350)"
-                          value={amount}
-                          onChange={(e) => setAmount(e.target.value)}
-                          required
-                          className="w-full pl-10 pr-4 py-3 bg-white text-zinc-900 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all font-bold"
-                        />
+                    {/* Amount & Payment Method */}
+                    <div className="grid sm:grid-cols-2 gap-5 border-t border-zinc-150 pt-5">
+                      
+                      {/* Amount / Cost Input */}
+                      <div className="space-y-2">
+                        <label className="block text-xs font-bold text-zinc-800 font-heading">
+                          Prescription Amount / Cost (₹) {!submitted && <span className="text-rose-500">*</span>}
+                        </label>
+                        <div className="relative">
+                          <IndianRupee className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                          <input
+                            type="number"
+                            step="1"
+                            min="0"
+                            placeholder="Enter cost (e.g. 350)"
+                            value={submitted ? (selectedVisit?.prescription_amount || amount || '0') : amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            disabled={submitted}
+                            required
+                            className={`w-full pl-10 pr-4 py-3 text-zinc-900 text-sm rounded-xl border transition-all font-bold ${
+                              submitted ? 'bg-zinc-100 border-zinc-200 cursor-not-allowed' : 'bg-white border-zinc-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15'
+                            }`}
+                          />
+                        </div>
                       </div>
+
+                      {/* Payment Method Selector */}
+                      <div className="space-y-2">
+                        <label className="block text-xs font-bold text-zinc-800 font-heading">
+                          Payment Method {!submitted && <span className="text-rose-500">*</span>}
+                        </label>
+                        
+                        <div className="grid grid-cols-3 gap-2">
+                          <button
+                            type="button"
+                            disabled={submitted}
+                            onClick={() => setPaymentMode('Cash')}
+                            className={`flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all cursor-pointer text-xs font-bold ${
+                              paymentMode === 'Cash'
+                                ? 'bg-primary text-white border-primary shadow-xs'
+                                : 'bg-white text-zinc-700 border-zinc-200 hover:border-primary/50'
+                            } ${submitted ? 'cursor-not-allowed opacity-75' : ''}`}
+                          >
+                            <Banknote className="h-4 w-4 mb-1" />
+                            <span>Cash</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={submitted}
+                            onClick={() => setPaymentMode('Card')}
+                            className={`flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all cursor-pointer text-xs font-bold ${
+                              paymentMode === 'Card'
+                                ? 'bg-primary text-white border-primary shadow-xs'
+                                : 'bg-white text-zinc-700 border-zinc-200 hover:border-primary/50'
+                            } ${submitted ? 'cursor-not-allowed opacity-75' : ''}`}
+                          >
+                            <CreditCard className="h-4 w-4 mb-1" />
+                            <span>Card</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={submitted}
+                            onClick={() => setPaymentMode('UPI')}
+                            className={`flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all cursor-pointer text-xs font-bold ${
+                              paymentMode === 'UPI'
+                                ? 'bg-primary text-white border-primary shadow-xs'
+                                : 'bg-white text-zinc-700 border-zinc-200 hover:border-primary/50'
+                            } ${submitted ? 'cursor-not-allowed opacity-75' : ''}`}
+                          >
+                            <QrCode className="h-4 w-4 mb-1" />
+                            <span>UPI</span>
+                          </button>
+                        </div>
+                      </div>
+
                     </div>
 
                     {/* Submit Button */}
                     <div className="pt-4">
                       <button
                         type="submit"
-                        disabled={submitting || !frontPhoto || !amount}
-                        className={`w-full py-4 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md ${
-                          submitting || !frontPhoto || !amount
-                            ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
-                            : 'bg-primary hover:bg-primary-dark text-white hover:scale-[1.01]'
+                        disabled={submitting || submitted || !frontPhoto || !amount}
+                        className={`w-full py-4 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-md ${
+                          submitting || submitted || !frontPhoto || !amount
+                            ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed shadow-none'
+                            : 'bg-primary hover:bg-primary-dark text-white hover:scale-[1.01] cursor-pointer'
                         }`}
                       >
                         {submitting ? (
@@ -534,10 +653,15 @@ export default function PharmacyPage() {
                             <RotateCw className="h-4 w-4 animate-spin" />
                             <span>Uploading Prescription...</span>
                           </>
+                        ) : submitted ? (
+                          <>
+                            <Lock className="h-4 w-4 text-emerald-600" />
+                            <span>Prescription Submitted & Payment Logged</span>
+                          </>
                         ) : (
                           <>
                             <CheckCircle2 className="h-4 w-4" />
-                            <span>Submit Prescription & Log Transaction</span>
+                            <span>Submit Prescription & Log Payment</span>
                           </>
                         )}
                       </button>
