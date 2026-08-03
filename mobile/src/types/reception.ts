@@ -14,6 +14,22 @@ export type PaymentMode = 'Cash' | 'UPI' | 'Card';
 
 export type PaymentStatus = 'Pending' | 'Paid' | 'Refund';
 
+export type DiagnosisType = 'Hair Diagnosis' | 'Skin Diagnosis' | 'Both Hair & Skin';
+export type TreatmentPaymentMode = 'Cash' | 'UPI' | 'Card';
+
+export interface Treatment {
+  id: number;
+  patient_id: number;
+  treatment_number: string;
+  diagnosis_name: string;
+  diagnosis_type: DiagnosisType;
+  treatment_amount: number;
+  payment_mode: TreatmentPaymentMode;
+  created_at: string;
+  updated_at: string;
+  patients?: Patient;
+}
+
 export interface Patient {
   id: number;
   patient_code: string;

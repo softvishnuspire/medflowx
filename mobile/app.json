@@ -3,12 +3,16 @@
     "name": "MedflowX Receptionist",
     "slug": "medflowx-receptionist",
     "version": "1.0.0",
+    "scheme": "medflowx",
+    "plugins": [
+      "expo-router"
+    ],
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#040812"
     },
@@ -16,13 +20,20 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.geetamtadepalli23steam.medflowxreceptionist",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundColor": "#040812"
       }
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/images/favicon.png"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "512e6481-1319-4848-af4c-955b687e77a9"
+      }
     }
   }
 }

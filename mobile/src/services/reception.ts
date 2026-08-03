@@ -498,3 +498,26 @@ export async function getPendingInvoices() {
   if (error) throw error;
   return data as any[];
 }
+
+/**
+ * Treatments
+ */
+export async function getTreatmentsList(searchQuery?: string) {
+  let query = supabase.from('treatments').select('*, patients(*)').order('created_at', { ascending: false });
+  if (searchQuery) {
+    query = query.ilike('diagnosis_name', `%${searchQuery.trim()}%`);
+  }
+  const { data, error } = await query;
+  if (error) throw error;
+  return data as any[];
+}
+
+export async function updateTreatment(id: number, data: any) {
+  const { error } = await supabase.from('treatments').update(data).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteTreatment(id: number) {
+  const { error } = await supabase.from('treatments').delete().eq('id', id);
+  if (error) throw error;
+}

@@ -9,10 +9,11 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import { setAuthUser } from '@/lib/storage';
 import { Stethoscope, Mail, Lock, ArrowRight, Shield, Users, Pill, ChevronDown, Check } from 'lucide-react-native';
-import { colors } from '../theme/colors';
-import { Input, Button } from '../components/UI';
+import { colors } from '@/theme/colors';
+import { Input, Button } from '@/components/UI';
 
 const ROLES = [
   {
@@ -24,6 +25,7 @@ const ROLES = [
     defaultEmail: 'sarahpost@trueupmedia.com',
     icon: Shield,
     color: '#3b82f6',
+    path: '/admin',
   },
   {
     id: 'reception',
@@ -34,6 +36,7 @@ const ROLES = [
     defaultEmail: 'sarah@medflowx.com',
     icon: Users,
     color: '#14b8a6',
+    path: '/reception',
   },
   {
     id: 'doctor',
@@ -44,6 +47,7 @@ const ROLES = [
     defaultEmail: 'doctor@medflowx.com',
     icon: Stethoscope,
     color: '#10b981',
+    path: '/doctor',
   },
   {
     id: 'pharmacy',
@@ -54,14 +58,12 @@ const ROLES = [
     defaultEmail: 'pharmacy@medflowx.com',
     icon: Pill,
     color: '#a855f7',
+    path: '/pharmacy',
   }
 ];
 
-interface LoginScreenProps {
-  onLoginSuccess: (user: any) => void;
-}
-
-export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
+export default function AuthPage() {
+  const router = useRouter();
   const [activeRole, setActiveRole] = useState(ROLES[1]); // Default to Receptionist
   const [email, setEmail] = useState(ROLES[1].defaultEmail);
   const [password, setPassword] = useState('password123');
@@ -89,23 +91,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
     setLoading(true);
 
-    // Simulate network latency for a premium login feedback cycle
     setTimeout(async () => {
       try {
-        const userProfile = {
+        await setAuthUser({
           email: email.trim().toLowerCase(),
           role: activeRole.authRole,
           name: activeRole.name,
           avatarCode: activeRole.name.substring(0, 2).toUpperCase(),
-        };
-
-        await AsyncStorage.setItem(
-          'medflowx_logged_in_user',
-          JSON.stringify(userProfile)
-        );
+        });
 
         setLoading(false);
-        onLoginSuccess(userProfile);
+        router.replace(activeRole.path as any);
       } catch (err: any) {
         setErrorMsg('Authentication failed. Please try again.');
         setLoading(false);
@@ -291,21 +287,21 @@ const styles = StyleSheet.create({
     left: '10%',
     width: 250,
     height: 250,
-    backgroundColor: '#14b8a6', // Teal
+    backgroundColor: '#14b8a6',
   },
   glow2: {
     bottom: '20%',
     right: '10%',
     width: 300,
     height: 300,
-    backgroundColor: '#8b5cf6', // Violet
+    backgroundColor: '#8b5cf6',
   },
   glow3: {
     bottom: '10%',
     left: '20%',
     width: 200,
     height: 200,
-    backgroundColor: '#10b981', // Emerald
+    backgroundColor: '#10b981',
   },
   brandContainer: {
     alignItems: 'center',
@@ -490,6 +486,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   signInButton: {
-    backgroundColor: '#0284c7', // Sky blue match
+    backgroundColor: '#0284c7',
   },
 });
