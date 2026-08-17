@@ -105,7 +105,10 @@ export async function submitPhysicalPrescription(params: {
   frontImage: File;
   backImage?: File | null;
   amount: number;
+  paymentMode?: 'Cash' | 'Card' | 'UPI';
+  patientId?: number | string;
 }) {
+  const paymentMode = params.paymentMode || 'Cash';
   const frontUrl = await uploadPrescriptionPhoto(params.frontImage);
   let backUrl: string | null = null;
   if (params.backImage) {
@@ -117,6 +120,7 @@ export async function submitPhysicalPrescription(params: {
     front: frontUrl,
     back: backUrl,
     amount: params.amount,
+    payment_mode: paymentMode,
   });
 
   // Always insert into prescriptions table for 100% database compatibility
@@ -149,8 +153,127 @@ export async function submitPhysicalPrescription(params: {
     .from('visits')
     .update({ status: 'Prescribed' })
     .eq('id', params.visitId)
-    .select()
+    .select('*, patients(*)')
     .single();
+
+  const patientId = params.patientId || updatedVisit?.patient_id;
+
+  // 1. Find or create invoice for this visit
+  let targetInvoiceId: number | string | null = null;
+  try {
+    const { data: existingInvoice } = await supabase
+      .from('invoices')
+      .select('id')
+      .eq('visit_id', params.visitId)
+      .maybeSingle();
+
+    if (existingInvoice?.id) {
+      targetInvoiceId = existingInvoice.id;
+      await supabase
+        .from('invoices')
+        .update({
+          total_amount: params.amount,
+          final_amount: params.amount,
+          paid_amount: params.amount,
+          status: 'Paid',
+        })
+        .eq('id', existingInvoice.id);
+    } else if (patientId) {
+      const { data: newInvoice } = await supabase
+        .from('invoices')
+        .insert({
+          visit_id: params.visitId,
+          patient_id: patientId,
+          total_amount: params.amount,
+          discount: 0,
+          tax: 0,
+          final_amount: params.amount,
+          paid_amount: params.amount,
+          status: 'Paid',
+        })
+        .select()
+        .single();
+      if (newInvoice?.id) targetInvoiceId = newInvoice.id;
+    }
+  } catch (invErr) {
+    console.warn('Invoice creation/update failed:', invErr);
+  }
+
+  // 2. Insert Payment Record into payments table so Admin Panel reflects revenue & payment mode summary
+  let paymentRecord: any = null;
+  if (targetInvoiceId) {
+    try {
+      const { data: payData } = await supabase
+        .from('payments')
+        .insert({
+          invoice_id: targetInvoiceId,
+          amount: params.amount,
+          payment_mode: paymentMode,
+          payment_status: 'Paid',
+          paid_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+      paymentRecord = payData;
+    } catch (payErr) {
+      console.warn('Payment insert failed:', payErr);
+    }
+  }
+
+  // 3. Record entry in pharmacy_sales table so Admin Statistics reflects pharmacy category breakdown
+  try {
+    await supabase.from('pharmacy_sales').insert({
+      visit_id: params.visitId,
+      patient_id: patientId || null,
+      total_amount: params.amount,
+      discount: 0,
+      final_amount: params.amount,
+      payment_mode: paymentMode,
+      status: 'Completed',
+      created_at: new Date().toISOString(),
+    });
+  } catch (pharmErr) {
+    console.warn('Pharmacy sales insert skipped/failed:', pharmErr);
+  }
+
+  // 4. Update LocalStorage fallback for offline / mock mode compatibility
+  if (typeof window !== 'undefined') {
+    try {
+      const localPayments = JSON.parse(localStorage.getItem('medflowx_payments') || '[]');
+      const newPayment = {
+        id: paymentRecord?.id || Date.now(),
+        invoice_id: targetInvoiceId || Date.now(),
+        amount: params.amount,
+        payment_mode: paymentMode,
+        payment_status: 'Paid',
+        created_at: new Date().toISOString(),
+      };
+      localStorage.setItem('medflowx_payments', JSON.stringify([newPayment, ...localPayments]));
+
+      const localPharmacySales = JSON.parse(localStorage.getItem('medflowx_pharmacy_sales') || '[]');
+      const newSale = {
+        id: Date.now(),
+        visit_id: params.visitId,
+        total_amount: params.amount,
+        final_amount: params.amount,
+        payment_mode: paymentMode,
+        created_at: new Date().toISOString(),
+      };
+      localStorage.setItem('medflowx_pharmacy_sales', JSON.stringify([newSale, ...localPharmacySales]));
+    } catch (lsErr) {
+      console.error('LocalStorage update error:', lsErr);
+    }
+  }
+
+  // Socket notification for queue sync
+  try {
+    if (!socket.connected) {
+      socket.connect();
+    }
+    socket.emit('update-queue', { visitId: params.visitId, status: 'Prescribed' });
+  } catch (err) {
+    console.error('Socket emission failed:', err);
+  }
 
   return updatedVisit;
 }
