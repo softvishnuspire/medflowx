@@ -32,8 +32,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "512e6481-1319-4848-af4c-955b687e77a9"
+        "projectId": "a39e7cf8-3100-4694-a77c-acf20505f1ec"
       }
-    }
+    },
+    "owner": "phani_is_op"
   }
 }
