@@ -6,8 +6,8 @@ export const patientSchema = z.object({
   gender: z.enum(['Male', 'Female', 'Other'], {
     message: 'Gender is required',
   }),
-  dob: z.string().nullable().optional().transform(v => v === '' ? null : v).refine((val) => {
-    if (!val) return true;
+  dob: z.string().optional().refine((val) => {
+    if (!val || val === '') return true;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(val)) return false;
     const date = new Date(val);
     return !isNaN(date.getTime()) && val === date.toISOString().split('T')[0];

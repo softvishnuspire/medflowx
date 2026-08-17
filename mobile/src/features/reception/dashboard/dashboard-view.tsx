@@ -27,7 +27,7 @@ interface DashboardStats {
 }
 
 interface DashboardViewProps {
-  onNavigateTab?: (tab: 'registration' | 'visit' | 'payments' | 'queue') => void;
+  onNavigateTab?: (tab: 'registration' | 'visit' | 'payments' | 'queue' | 'treatments' | 'search' | 'patients' | 'dashboard') => void;
 }
 
 export default function DashboardView({ onNavigateTab }: DashboardViewProps) {

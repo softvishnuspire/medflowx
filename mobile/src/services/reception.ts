@@ -512,6 +512,22 @@ export async function getTreatmentsList(searchQuery?: string) {
   return data as any[];
 }
 
+export async function createTreatment(data: {
+  patient_id: number;
+  diagnosis_name: string;
+  diagnosis_type: string;
+  treatment_amount: number;
+  payment_mode: string;
+}) {
+  const { data: created, error } = await supabase
+    .from('treatments')
+    .insert([data])
+    .select('*, patients(*)')
+    .single();
+  if (error) throw error;
+  return created;
+}
+
 export async function updateTreatment(id: number, data: any) {
   const { error } = await supabase.from('treatments').update(data).eq('id', id);
   if (error) throw error;
@@ -521,3 +537,4 @@ export async function deleteTreatment(id: number) {
   const { error } = await supabase.from('treatments').delete().eq('id', id);
   if (error) throw error;
 }
+

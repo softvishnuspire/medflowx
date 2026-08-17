@@ -1,7 +1,6 @@
 import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 import Animated, { Keyframe, Easing } from 'react-native-reanimated';
-import classes from './animated-icon.module.css';
 const DURATION = 300;
 
 export function AnimatedSplashOverlay() {
@@ -28,7 +27,7 @@ const logoKeyframe = new Keyframe({
   },
   60: {
     transform: [{ scale: 1.2 }],
-    opacity: 0,
+    opacity: 1,
     easing: Easing.elastic(1.2),
   },
   100: {
@@ -40,13 +39,7 @@ const logoKeyframe = new Keyframe({
 
 const glowKeyframe = new Keyframe({
   0: {
-    transform: [{ rotateZ: '-180deg' }, { scale: 0.8 }],
-    opacity: 0,
-  },
-  [DURATION / 1000]: {
-    transform: [{ rotateZ: '0deg' }, { scale: 1 }],
-    opacity: 1,
-    easing: Easing.elastic(0.7),
+    transform: [{ rotateZ: '0deg' }],
   },
   100: {
     transform: [{ rotateZ: '7200deg' }],
@@ -61,7 +54,7 @@ export function AnimatedIcon() {
       </Animated.View>
 
       <Animated.View style={styles.background} entering={keyframe.duration(DURATION)}>
-        <View className={classes.expoLogoBackground} />
+        <View style={styles.background} />
       </Animated.View>
 
       <Animated.View style={styles.imageContainer} entering={logoKeyframe.duration(DURATION)}>

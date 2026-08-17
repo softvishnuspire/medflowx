@@ -48,6 +48,7 @@ export interface Patient {
   created_at: string;
   updated_at: string;
   patient_addresses?: PatientAddress[];
+  addresses?: PatientAddress[];
 }
 
 export interface PatientAddress {
@@ -159,4 +160,6 @@ export interface PaymentFormValues {
   invoice_id: number;
   amount: number;
   payment_mode: PaymentMode;
+  transaction_reference?: string;
+  payment_status?: PaymentStatus;
 }
