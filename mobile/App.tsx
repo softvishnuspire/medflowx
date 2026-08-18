@@ -96,7 +96,7 @@ export default function App() {
   if (!currentUser) {
     return (
       <SafeAreaProvider>
-        <ExpoStatusBar style="light" backgroundColor="#040812" translucent={false} />
+        <ExpoStatusBar style="light" />
         <LoginScreen onLoginSuccess={handleLoginSuccess} />
       </SafeAreaProvider>
     );
@@ -105,7 +105,7 @@ export default function App() {
   // Logged in -> Render main receptionist workspace
   return (
     <SafeAreaProvider>
-      <ExpoStatusBar style="dark" backgroundColor="#ffffff" translucent={false} />
+      <ExpoStatusBar style="dark" />
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         
         {/* Top Header Bar */}

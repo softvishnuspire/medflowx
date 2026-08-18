@@ -78,7 +78,7 @@ export default function PatientDetailView({ patientId, onBack }: PatientDetailVi
   }
 
   const { patient, visits, payments } = data;
-  const address = patient.addresses && patient.addresses.length > 0 ? patient.addresses[0] : null;
+  const address = patient.patient_addresses && patient.patient_addresses.length > 0 ? patient.patient_addresses[0] : null;
 
   return (
     <View className="space-y-6 animate-slide-in text-zinc-705 font-body">

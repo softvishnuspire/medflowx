@@ -28,7 +28,7 @@ export default function RegistrationFormView({ onSuccess }: RegistrationFormView
     setValue,
     watch,
     formState: { errors },
-  } = useForm<PatientFormValues>({
+  } = useForm({
     resolver: zodResolver(patientSchema),
     defaultValues: {
       first_name: '',

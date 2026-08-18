@@ -25,11 +25,11 @@
 }
 
 .reception-theme {
-  --primary-color: #0d9488; /* teal-600 */
-  --secondary-color: #14b8a6; /* teal-500 */
-  --cta-color: #0f766e; /* teal-700 */
-  --background-color: #f0fdfa; /* teal-50 */
-  --text-color: #115e59; /* teal-800 */
+  --primary-color: #059669; /* emerald-600 */
+  --secondary-color: #10b981; /* emerald-500 */
+  --cta-color: #047857; /* emerald-700 */
+  --background-color: #ecfdf5; /* emerald-50 */
+  --text-color: #064e3b; /* emerald-900 */
   --heading-font: 'Figtree', sans-serif;
   --body-font: 'Noto Sans', sans-serif;
 }

@@ -75,7 +75,7 @@ export default function PatientProfileView({ patientId, onBack, onCreateVisit }:
   }
 
   const { patient, visits } = data;
-  const address = patient.addresses && patient.addresses[0];
+  const address = patient.patient_addresses && patient.patient_addresses[0];
 
   return (
     <View className="space-y-6 font-body text-zinc-700">
