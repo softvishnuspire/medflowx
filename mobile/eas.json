@@ -9,16 +9,24 @@
       "distribution": "internal"
     },
     "preview": {
+      "distribution": "internal",
       "android": {
         "buildType": "apk"
       },
       "env": {
-        "GRADLE_OPTS": "-Dorg.gradle.jvmargs=\"-Xmx4096m -XX:MaxMetaspaceSize=1024m\""
+        "EXPO_PUBLIC_SUPABASE_URL": "https://xdtnvxawuzjtxceaskvb.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_IDwF40nrOzh-cNPQk5KlmQ_59XIWvBM",
+        "GRADLE_OPTS": "-Dorg.gradle.jvmargs=\"-Xmx4096m -XX:MaxMetaspaceSize=1024m\"",
+        "NODE_OPTIONS": "--max-old-space-size=4096",
+        "EAS_SKIP_AUTO_FINGERPRINT": "1"
       }
     },
     "production": {
       "env": {
-        "GRADLE_OPTS": "-Dorg.gradle.jvmargs=\"-Xmx4096m -XX:MaxMetaspaceSize=1024m\""
+        "EXPO_PUBLIC_SUPABASE_URL": "https://xdtnvxawuzjtxceaskvb.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_IDwF40nrOzh-cNPQk5KlmQ_59XIWvBM",
+        "GRADLE_OPTS": "-Dorg.gradle.jvmargs=\"-Xmx4096m -XX:MaxMetaspaceSize=1024m\"",
+        "NODE_OPTIONS": "--max-old-space-size=4096"
       }
     }
   },
