@@ -10,7 +10,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
@@ -32,9 +32,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "05f3ff5f-6e43-4cdd-9952-66dbb8657b7f"
+        "projectId": "512e6481-1319-4848-af4c-955b687e77a9"
       }
     },
-    "owner": "geetamtadepalli23"
+    "owner": "geetamtadepalli23s-team"
   }
 }

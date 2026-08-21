@@ -1,0 +1,7 @@
+# EAS Build Ignore File
+android/
+ios/
+node_modules/
+.expo/
+dist/
+.env.local

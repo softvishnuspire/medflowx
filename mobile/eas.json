@@ -16,8 +16,7 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://xdtnvxawuzjtxceaskvb.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_IDwF40nrOzh-cNPQk5KlmQ_59XIWvBM",
-        "GRADLE_OPTS": "-Dorg.gradle.jvmargs=\"-Xmx4096m -XX:MaxMetaspaceSize=1024m\"",
-        "NODE_OPTIONS": "--max-old-space-size=4096",
+        "GRADLE_OPTS": "-Xmx2048m -XX:MaxMetaspaceSize=512m",
         "EAS_SKIP_AUTO_FINGERPRINT": "1"
       }
     },
@@ -25,8 +24,7 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://xdtnvxawuzjtxceaskvb.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_IDwF40nrOzh-cNPQk5KlmQ_59XIWvBM",
-        "GRADLE_OPTS": "-Dorg.gradle.jvmargs=\"-Xmx4096m -XX:MaxMetaspaceSize=1024m\"",
-        "NODE_OPTIONS": "--max-old-space-size=4096"
+        "GRADLE_OPTS": "-Xmx2048m -XX:MaxMetaspaceSize=512m"
       }
     }
   },
