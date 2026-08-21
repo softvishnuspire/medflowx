@@ -85,7 +85,7 @@ export default function BillingInvoicesList({ onSelectInvoice }: BillingInvoices
                   </View>
 
                   <Text className="text-xs text-zinc-500 font-medium">
-                    {inv.visits?.doctors?.profiles?.full_name || 'Dr. Practitioner'} ({inv.visits?.doctors?.departments?.department_name || 'OPD'})
+                    {inv.visits?.doctors?.profiles?.full_name || 'Dr. Practitioner'}
                   </Text>
                   <Text className="text-[10px] font-mono font-bold text-zinc-400 mt-0.5">#{inv.invoice_number} • #{visitNum}</Text>
                 </View>

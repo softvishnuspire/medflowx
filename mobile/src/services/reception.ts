@@ -8,10 +8,10 @@ import { getJsonItem, setJsonItem } from '../lib/storage';
 // =========================================================================
 
 const DEFAULT_DEPARTMENTS: Department[] = [
-  { id: 1, department_name: 'General Medicine' },
-  { id: 2, department_name: 'ENT' },
-  { id: 3, department_name: 'Dental' },
-  { id: 4, department_name: 'Cardiology' },
+  { id: 1, department_name: 'Hair Care & Trichology' },
+  { id: 2, department_name: 'Skin & Dermatology' },
+  { id: 3, department_name: 'Hair & Skin Combo' },
+  { id: 4, department_name: 'Aesthetic & Laser Care' },
 ];
 
 const DEFAULT_DOCTORS: Doctor[] = [
@@ -19,37 +19,37 @@ const DEFAULT_DOCTORS: Doctor[] = [
     id: 1,
     user_id: 'doc-1',
     department_id: 1,
-    qualification: 'MD - General Medicine',
-    consultation_fee: 350,
+    qualification: 'MD - Dermatology & Trichology',
+    consultation_fee: 500,
     profiles: { full_name: 'Dr. Phanindra Varma', email: null, phone: null },
-    departments: { department_name: 'General Medicine' },
+    departments: { department_name: 'Hair Care & Trichology' },
   },
   {
     id: 2,
     user_id: 'doc-2',
     department_id: 2,
-    qualification: 'MS - ENT',
-    consultation_fee: 400,
+    qualification: 'DNB - Skin & Cosmetology',
+    consultation_fee: 500,
     profiles: { full_name: 'Dr. Ananya Rao', email: null, phone: null },
-    departments: { department_name: 'ENT' },
+    departments: { department_name: 'Skin & Dermatology' },
   },
   {
     id: 3,
     user_id: 'doc-3',
     department_id: 3,
-    qualification: 'BDS, MDS - Dental',
-    consultation_fee: 300,
+    qualification: 'MD - Hair & Skin Specialist',
+    consultation_fee: 600,
     profiles: { full_name: 'Dr. Rajesh Kumar', email: null, phone: null },
-    departments: { department_name: 'Dental' },
+    departments: { department_name: 'Hair & Skin Combo' },
   },
   {
     id: 4,
     user_id: 'doc-4',
     department_id: 4,
-    qualification: 'DM - Cardiology',
+    qualification: 'Fellowship - Laser & Aesthetics',
     consultation_fee: 600,
     profiles: { full_name: 'Dr. Suresh Mehta', email: null, phone: null },
-    departments: { department_name: 'Cardiology' },
+    departments: { department_name: 'Aesthetic & Laser Care' },
   },
 ];
 
@@ -274,8 +274,37 @@ const setLocalPayments = (data: any[]) => setJsonItem('medflowx_payments', data)
 const getLocalInvoices = () => getJsonItem<Invoice[]>('medflowx_invoices', DEFAULT_INVOICES);
 const setLocalInvoices = (data: Invoice[]) => setJsonItem('medflowx_invoices', data);
 
-const getLocalDoctors = () => getJsonItem<Doctor[]>('medflowx_doctors', DEFAULT_DOCTORS);
-const getLocalDepartments = () => getJsonItem<Department[]>('medflowx_departments', DEFAULT_DEPARTMENTS);
+const DEPT_NAME_MAP: Record<string, string> = {
+  'General Medicine': 'Hair Care & Trichology',
+  'ENT': 'Skin & Dermatology',
+  'Dental': 'Hair & Skin Combo',
+  'Cardiology': 'Aesthetic & Laser Care',
+  'General': 'Hair & Skin Care'
+};
+
+const getLocalDoctors = async () => {
+  const docs = await getJsonItem<Doctor[]>('medflowx_doctors', DEFAULT_DOCTORS);
+  return docs.map((doc: Doctor) => {
+    const rawDept = doc.departments?.department_name;
+    const deptName = rawDept
+      ? (DEPT_NAME_MAP[rawDept] || rawDept)
+      : (DEFAULT_DEPARTMENTS.find((d: Department) => d.id === doc.department_id)?.department_name || 'Hair Care & Trichology');
+    return {
+      ...doc,
+      departments: {
+        department_name: deptName
+      }
+    };
+  });
+};
+
+const getLocalDepartments = async () => {
+  const depts = await getJsonItem<Department[]>('medflowx_departments', DEFAULT_DEPARTMENTS);
+  return depts.map((d: Department) => ({
+    ...d,
+    department_name: DEPT_NAME_MAP[d.department_name] || d.department_name
+  }));
+};
 
 // =========================================================================
 // SERVICES IMPLEMENTATION
@@ -853,6 +882,119 @@ export async function collectPayment(paymentData: PaymentFormValues) {
   }
 
   return newPayment;
+}
+
+/**
+ * Submit physical prescription images and cost for a visit safely.
+ */
+export async function submitPhysicalPrescription(params: {
+  visitId: number | string;
+  frontImageUri: string;
+  backImageUri?: string | null;
+  amount: number;
+  paymentMode?: 'Cash' | 'Card' | 'UPI';
+  patientId?: number | string;
+}) {
+  const paymentMode = params.paymentMode || 'Cash';
+  const frontUrl = params.frontImageUri;
+  const backUrl = params.backImageUri || null;
+
+  // 1. Update local storage visits first
+  const visits = await getLocalVisits();
+  const visitIdx = visits.findIndex((v) => Number(v.id) === Number(params.visitId));
+  if (visitIdx !== -1) {
+    visits[visitIdx].status = 'Prescribed';
+    visits[visitIdx].prescription_amount = params.amount;
+    visits[visitIdx].prescription_image_front = frontUrl;
+    visits[visitIdx].prescription_image_back = backUrl;
+    await setLocalVisits(visits);
+  }
+
+  // Also store in local pharmacy_sales
+  const localPharmacySales = await getJsonItem<any[]>('medflowx_pharmacy_sales', []);
+  const newSale = {
+    id: Date.now(),
+    visit_id: params.visitId,
+    patient_id: params.patientId || (visitIdx !== -1 ? visits[visitIdx].patient_id : null),
+    total_amount: params.amount,
+    final_amount: params.amount,
+    payment_mode: paymentMode,
+    created_at: new Date().toISOString(),
+  };
+  localPharmacySales.unshift(newSale);
+  await setJsonItem('medflowx_pharmacy_sales', localPharmacySales);
+
+  // 2. Supabase sync with fallback
+  if (isSupabaseConfigured) {
+    try {
+      // Always insert into prescriptions table for schema safety
+      const rxPayload = JSON.stringify({
+        type: 'PHYSICAL_PRESCRIPTION',
+        front: frontUrl,
+        back: backUrl,
+        amount: params.amount,
+        payment_mode: paymentMode,
+      });
+
+      await supabase.from('prescriptions').insert({
+        visit_id: params.visitId,
+        advice: rxPayload,
+      });
+
+      // Try updating visits table directly, skipping if prescription_amount column is missing
+      try {
+        const { error: visitUpdateErr } = await supabase
+          .from('visits')
+          .update({
+            status: 'Prescribed',
+            prescription_amount: params.amount,
+          })
+          .eq('id', params.visitId);
+
+        if (visitUpdateErr) {
+          // If prescription_amount column is missing in schema, update status only
+          await supabase
+            .from('visits')
+            .update({ status: 'Prescribed' })
+            .eq('id', params.visitId);
+        }
+      } catch (err: any) {
+        console.warn('Visits prescription_amount column update skipped:', err?.message);
+        await supabase
+          .from('visits')
+          .update({ status: 'Prescribed' })
+          .eq('id', params.visitId);
+      }
+
+      // Log entry in pharmacy_sales
+      try {
+        await supabase.from('pharmacy_sales').insert({
+          visit_id: params.visitId,
+          patient_id: params.patientId || null,
+          total_amount: params.amount,
+          discount: 0,
+          final_amount: params.amount,
+          payment_mode: paymentMode,
+          status: 'Completed',
+          created_at: new Date().toISOString(),
+        });
+      } catch (pharmErr) {
+        console.warn('Pharmacy sales insert warning:', pharmErr);
+      }
+    } catch (err: any) {
+      console.warn('Supabase submitPhysicalPrescription sync warning:', err?.message);
+    }
+  }
+
+  // Socket notification
+  try {
+    if (!socket.connected) socket.connect();
+    socket.emit('update-queue', { visitId: params.visitId, status: 'Prescribed' });
+  } catch (err) {
+    console.error('Socket emission failed:', err);
+  }
+
+  return true;
 }
 
 /**

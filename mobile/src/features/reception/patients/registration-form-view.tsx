@@ -54,19 +54,30 @@ export default function RegistrationFormView({ onSuccess }: RegistrationFormView
 
   const dobValue = watch('dob');
 
-  // Auto-calculate age from DOB text
+  // Auto-calculate age from DOB text (DD-MM-YYYY or YYYY-MM-DD)
   const handleDobChange = (text: string) => {
     setValue('dob', text);
     if (text && text.length === 10) {
-      const birthDate = new Date(text);
-      const today = new Date();
-      let calculatedAge = today.getFullYear() - birthDate.getFullYear();
-      const monthDiff = today.getMonth() - birthDate.getMonth();
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-        calculatedAge--;
+      let birthDate: Date | null = null;
+
+      if (/^\d{2}-\d{2}-\d{4}$/.test(text)) {
+        const [day, month, year] = text.split('-').map(Number);
+        birthDate = new Date(year, month - 1, day);
+      } else if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+        const [year, month, day] = text.split('-').map(Number);
+        birthDate = new Date(year, month - 1, day);
       }
-      if (calculatedAge >= 0 && !isNaN(calculatedAge)) {
-        setValue('age', calculatedAge);
+
+      if (birthDate && !isNaN(birthDate.getTime())) {
+        const today = new Date();
+        let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          calculatedAge--;
+        }
+        if (calculatedAge >= 0 && !isNaN(calculatedAge)) {
+          setValue('age', calculatedAge);
+        }
       }
     }
   };
@@ -189,9 +200,9 @@ export default function RegistrationFormView({ onSuccess }: RegistrationFormView
             {/* DOB & Age Row */}
             <View className="flex-row gap-3">
               <View className="flex-1">
-                <Text className="text-[10px] font-extrabold text-slate-500 mb-1 uppercase tracking-wider">DOB (YYYY-MM-DD)</Text>
+                <Text className="text-[10px] font-extrabold text-slate-500 mb-1 uppercase tracking-wider">DOB (DD-MM-YYYY)</Text>
                 <TextInput
-                  placeholder="1995-08-15"
+                  placeholder="15-08-1995"
                   onChangeText={handleDobChange}
                   value={dobValue || ''}
                   className={`h-11 px-3.5 border rounded-xl text-xs bg-slate-50/70 text-slate-900 font-medium ${

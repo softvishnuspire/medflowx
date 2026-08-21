@@ -31,10 +31,10 @@ const MOCK_ROLES: Role[] = [
 ];
 
 const MOCK_DEPARTMENTS: Department[] = [
-  { id: 1, department_name: 'General Medicine' },
-  { id: 2, department_name: 'ENT' },
-  { id: 3, department_name: 'Dental' },
-  { id: 4, department_name: 'Cardiology' }
+  { id: 1, department_name: 'Hair Care & Trichology' },
+  { id: 2, department_name: 'Skin & Dermatology' },
+  { id: 3, department_name: 'Hair & Skin Combo' },
+  { id: 4, department_name: 'Aesthetic & Laser Care' }
 ];
 
 const DEFAULT_PROFILES = [
@@ -48,10 +48,10 @@ const DEFAULT_PROFILES = [
 ];
 
 const DEFAULT_DOCTORS = [
-  { id: 1, user_id: 'doc-1', department_id: 1, qualification: 'MD - General Medicine', consultation_fee: 350 },
-  { id: 2, user_id: 'doc-2', department_id: 2, qualification: 'MS - ENT', consultation_fee: 400 },
-  { id: 3, user_id: 'doc-3', department_id: 3, qualification: 'BDS, MDS - Dental', consultation_fee: 300 },
-  { id: 4, user_id: 'doc-4', department_id: 4, qualification: 'DM - Cardiology', consultation_fee: 600 }
+  { id: 1, user_id: 'doc-1', department_id: 1, qualification: 'MD - Dermatology & Trichology', consultation_fee: 500 },
+  { id: 2, user_id: 'doc-2', department_id: 2, qualification: 'DNB - Skin & Cosmetology', consultation_fee: 500 },
+  { id: 3, user_id: 'doc-3', department_id: 3, qualification: 'MD - Hair & Skin Specialist', consultation_fee: 600 },
+  { id: 4, user_id: 'doc-4', department_id: 4, qualification: 'Fellowship - Laser & Aesthetics', consultation_fee: 600 }
 ];
 
 // Helper functions for storage

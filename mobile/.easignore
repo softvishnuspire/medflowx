@@ -3,5 +3,7 @@ android/
 ios/
 node_modules/
 .expo/
+.cxx/
+build/
 dist/
 .env.local

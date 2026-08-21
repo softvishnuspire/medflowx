@@ -123,7 +123,7 @@ export default function QueueView() {
                     </View>
 
                     <Text className="text-xs text-slate-500 font-medium">
-                      {docName} ({v.doctors?.departments?.department_name || 'OPD'})
+                      {docName}
                     </Text>
                     <Text className="text-[10px] font-mono font-extrabold text-slate-400 mt-0.5">
                       #{v.visit_number}

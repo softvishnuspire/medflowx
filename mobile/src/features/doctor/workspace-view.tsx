@@ -580,9 +580,9 @@ export default function WorkspaceView({
                 <TouchableOpacity
                   onPress={handleHoldVisit}
                   disabled={saving}
-                  className="bg-cta hover:bg-cta/90 text-white text-xs font-bold py-2.5 px-5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+                  className="bg-cyan-600 active:bg-cyan-700 text-white text-xs font-bold py-2.5 px-5 rounded-xl flex-row items-center gap-2"
                 >
-                  {saving ? <RotateCw className="h-3.5 w-3.5 animate-spin" /> : <Activity className="h-3.5 w-3.5" />}
+                  {saving ? <RotateCw className="h-3.5 w-3.5 animate-spin text-white" /> : <Activity className="h-3.5 w-3.5 text-white" />}
                   <Text className="text-white font-bold">Start Consultation</Text>
                 </TouchableOpacity>
               )}
@@ -726,7 +726,7 @@ export default function WorkspaceView({
                       <TextInput
                         value={followUpDate}
                         onChangeText={(text) => setFollowUpDate(text)}
-                        placeholder="YYYY-MM-DD"
+                        placeholder="DD-MM-YYYY"
                         className="w-full py-2 px-3 bg-zinc-50/50 text-zinc-800 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:border-primary focus:bg-white transition-all font-medium"
                       />
                     </View>
@@ -889,8 +889,8 @@ export default function WorkspaceView({
                   <TouchableOpacity onPress={() => { setSelectedVisit(null); resetConsultationForm(); }} className="py-2.5 px-6 bg-white border border-zinc-200 text-zinc-600 font-bold text-xs rounded-xl hover:bg-zinc-50 transition-all cursor-pointer">
                     <Text className="font-bold text-zinc-600">Cancel</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={handleSubmitConsultation} disabled={saving || !diagnosis.trim()} className={`py-2.5 px-8 font-bold text-xs rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-sm ${diagnosis.trim() && !saving ? 'bg-cta hover:bg-cta/90 text-white' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}>
-                    {saving ? <RotateCw className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  <TouchableOpacity onPress={handleSubmitConsultation} disabled={saving || !diagnosis.trim()} className={`py-2.5 px-8 font-bold text-xs rounded-xl flex-row items-center gap-2 shadow-xs ${diagnosis.trim() && !saving ? 'bg-cyan-600 active:bg-cyan-700' : 'bg-zinc-200'}`}>
+                    {saving ? <RotateCw className="h-3.5 w-3.5 animate-spin text-white" /> : <Send className="h-3.5 w-3.5 text-white" />}
                     <Text className={diagnosis.trim() && !saving ? 'text-white font-bold' : 'text-zinc-400 font-bold'}>Push to Pharmacy</Text>
                   </TouchableOpacity>
                 </View>

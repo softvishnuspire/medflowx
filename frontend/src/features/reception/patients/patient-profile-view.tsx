@@ -298,7 +298,7 @@ export default function PatientProfileView({ patientId, onBack, onCreateVisit }:
                           {v.visit_number}
                         </TableCell>
                         <TableCell className="font-medium text-zinc-800">
-                          {v.doctors?.departments?.department_name || 'General Medicine'}
+                          {v.doctors?.departments?.department_name || 'Hair Care & Trichology'}
                         </TableCell>
                         <TableCell className="text-zinc-800 font-medium">
                           {v.doctors?.profiles?.full_name || 'Unknown Doctor'}

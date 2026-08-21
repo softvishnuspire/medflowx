@@ -170,6 +170,9 @@ CREATE TABLE visits (
     token_no INTEGER NOT NULL,
     chief_complaint TEXT,
     status visit_status_type DEFAULT 'Created',
+    prescription_amount DECIMAL(10,2) DEFAULT 0.00,
+    prescription_image_front TEXT,
+    prescription_image_back TEXT,
     
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -577,10 +580,10 @@ ON CONFLICT (id) DO UPDATE SET
 
 -- Insert departments
 INSERT INTO departments (id, department_name) VALUES
-(1, 'General Medicine'),
-(2, 'ENT'),
-(3, 'Dental'),
-(4, 'Cardiology')
+(1, 'Hair Care & Trichology'),
+(2, 'Skin & Dermatology'),
+(3, 'Hair & Skin Combo'),
+(4, 'Aesthetic & Laser Care')
 ON CONFLICT (id) DO UPDATE SET 
   department_name = EXCLUDED.department_name;
 

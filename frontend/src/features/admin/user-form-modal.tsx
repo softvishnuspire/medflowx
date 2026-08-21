@@ -223,7 +223,7 @@ export default function UserFormModal({
                 className={`w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20' ${
                   errors.qualification ? 'border-red-300' : 'border-zinc-200'
                 }`}
-                placeholder="e.g. MBBS, MD - Cardiology"
+                placeholder="e.g. MD - Dermatology & Trichology"
               />
               {errors.qualification && (
                 <span className="text-[11px] text-red-500 mt-1 block font-medium">{String(errors.qualification.message)}</span>

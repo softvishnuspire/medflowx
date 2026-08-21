@@ -68,44 +68,42 @@ export default function PaymentCollectionView({
 
   if (isPaidSuccess) {
     return (
-      <Card className="max-w-md mx-auto border border-zinc-150 shadow-md py-10 bg-white rounded-xl font-body">
-        <CardContent className="flex flex-col items-center justify-center text-center space-y-6 p-6">
-          <View className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-inner animate-pulse">
-            <CheckCircle className="h-10 w-10" />
+      <Card className="max-w-md mx-auto border border-slate-100 shadow-sm py-8 bg-white rounded-3xl font-body">
+        <CardContent className="flex flex-col items-center justify-center text-center gap-5 p-6">
+          <View className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-100 items-center justify-center">
+            <CheckCircle className="h-9 w-9 text-emerald-600" />
           </View>
           
-          <View className="space-y-2">
-            <Text className="text-2xl font-bold text-zinc-950 font-heading">Payment Received!</Text>
-            <Text className="text-sm font-semibold text-emerald-600">Patient sent to Doctor</Text>
+          <View className="items-center gap-1">
+            <Text className="text-xl font-black text-slate-900">Payment Received!</Text>
+            <Text className="text-xs font-bold text-emerald-600">Patient sent to Doctor Queue</Text>
           </View>
 
-          <View className="bg-primary/5 border border-primary/10 rounded-xl p-4 w-full text-sm space-y-2 text-left">
-            <View className="flex-row justify-between text-xs text-zinc-500 border-b border-zinc-100 pb-2">
-              <Text>Visit Number:</Text>
-              <Text className="font-mono font-bold text-zinc-700">{visitNumber}</Text>
+          <View className="bg-slate-50 border border-slate-100 rounded-2xl p-4 w-full gap-2">
+            <View className="flex-row justify-between text-xs border-b border-slate-200/50 pb-2">
+              <Text className="text-slate-400 font-bold">Visit Number:</Text>
+              <Text className="font-mono font-black text-slate-800">{visitNumber}</Text>
             </View>
-            <View className="flex-row justify-between text-xs text-zinc-500 border-b border-zinc-100 pb-2">
-              <Text>Patient:</Text>
-              <Text className="font-semibold text-zinc-750">{patientName}</Text>
+            <View className="flex-row justify-between text-xs border-b border-slate-200/50 pb-2">
+              <Text className="text-slate-400 font-bold">Patient:</Text>
+              <Text className="font-bold text-slate-900">{patientName}</Text>
             </View>
-            <View className="flex-row justify-between text-xs text-zinc-500 border-b border-zinc-100 pb-2">
-              <Text>Amount Paid:</Text>
-              <Text className="font-bold text-zinc-900">₹{amount}</Text>
+            <View className="flex-row justify-between text-xs border-b border-slate-200/50 pb-2">
+              <Text className="text-slate-400 font-bold">Amount Paid:</Text>
+              <Text className="font-black text-emerald-700">₹{amount}</Text>
             </View>
-            <View className="flex-row justify-between text-xs text-zinc-500">
-              <Text>Payment Method:</Text>
-              <Text className="font-semibold text-zinc-800">{paymentMethod}</Text>
+            <View className="flex-row justify-between text-xs">
+              <Text className="text-slate-400 font-bold">Payment Method:</Text>
+              <Text className="font-black text-cyan-800">{paymentMethod}</Text>
             </View>
           </View>
 
-          <View className="w-full">
-            <TouchableOpacity
-              onPress={onSuccess}
-              className="w-full h-10 bg-cta hover:opacity-90 text-white rounded-lg text-sm font-semibold shadow-sm transition-all cursor-pointer items-center justify-center"
-            >
-              <Text className="text-white font-semibold">Go to Today's Queue</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={onSuccess}
+            className="w-full h-12 bg-cyan-600 active:bg-cyan-700 rounded-2xl items-center justify-center shadow-xs"
+          >
+            <Text className="text-white font-black text-xs">Go to Today's Queue</Text>
+          </TouchableOpacity>
         </CardContent>
       </Card>
     );
@@ -118,107 +116,106 @@ export default function PaymentCollectionView({
   ];
 
   return (
-    <View className="space-y-6 max-w-lg mx-auto font-body text-zinc-700">
+    <View className="gap-5 max-w-lg mx-auto w-full">
       <View>
-        <Text className="text-2xl font-bold text-zinc-900 tracking-tight font-heading">Collect Consultation Fee</Text>
-        <Text className="text-sm text-zinc-500 mt-1">Record consultation payment to activate the visit in the queue.</Text>
+        <Text className="text-xl font-black text-slate-900">Collect Consultation Fee</Text>
+        <Text className="text-xs text-slate-500 font-medium mt-0.5">Record consultation payment to activate the visit in the queue.</Text>
       </View>
 
-      <Card className="border border-zinc-150/70 shadow-sm bg-white rounded-xl">
-        <CardContent className="p-6">
-          <View className="space-y-6">
-            <View className="flex-row items-center gap-2 border-b border-zinc-100 pb-3 text-sm font-semibold text-zinc-800 font-heading">
-              <IndianRupee className="h-4.5 w-4.5 text-primary" />
-              <Text>Payment Details</Text>
+      <Card className="border border-slate-100 shadow-sm bg-white rounded-3xl overflow-hidden">
+        <CardContent className="p-5 gap-5">
+          <View className="flex-row items-center gap-2 border-b border-slate-100 pb-3">
+            <IndianRupee className="h-4 w-4 text-cyan-600" />
+            <Text className="text-xs font-black text-slate-800 uppercase tracking-wider">Payment Details</Text>
+          </View>
+
+          {/* Visit Info Summary */}
+          <View className="flex-row gap-3 p-4 bg-cyan-50/60 border border-cyan-100 rounded-2xl">
+            <View className="flex-1">
+              <Text className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Patient Name</Text>
+              <Text className="font-black text-slate-900 text-xs">{patientName}</Text>
             </View>
-
-            {/* Visit Info Summary */}
-            <View className="grid grid-cols-2 gap-4 p-4 bg-primary/5 border border-primary/10 rounded-xl text-sm">
-              <View>
-                <Text className="text-xs text-zinc-455 font-semibold block font-heading">Patient Name</Text>
-                <Text className="font-bold text-zinc-800">{patientName}</Text>
-              </View>
-              <View>
-                <Text className="text-xs text-zinc-455 font-semibold block font-heading">Visit Number</Text>
-                <Text className="font-mono font-bold text-zinc-800">{visitNumber}</Text>
-              </View>
-            </View>
-
-            {/* Amount display */}
-            <View className="text-center py-6 border border-zinc-200 rounded-xl bg-white shadow-inner">
-              <Text className="text-xs text-zinc-500 font-bold uppercase tracking-wider block font-heading">Total Amount Due</Text>
-              <Text className="text-4xl font-extrabold text-cta tracking-tight mt-1 inline-block">₹{amount}</Text>
-              {amount === 0 ? (
-                <Text className="block text-[10px] text-emerald-600 mt-1.5 font-bold uppercase font-heading">Repeat Patient - Free Consultation</Text>
-              ) : (
-                <Text className="block text-[10px] text-zinc-400 mt-1.5 font-medium">Consultation fee only. Includes basic OPD taxes.</Text>
-              )}
-            </View>
-
-            {/* Select Method */}
-            <View className="space-y-2">
-              <Text className="block text-xs font-bold text-zinc-500 font-heading">Select Payment Method</Text>
-              <View className="grid grid-cols-3 gap-3">
-                {paymentModes.map((item) => {
-                  const Icon = item.icon;
-                  const isSelected = paymentMethod === item.mode;
-                  return (
-                    <TouchableOpacity
-                      key={item.mode}
-                      onPress={() => {
-                        setPaymentMethod(item.mode);
-                        setTransactionRef(''); // reset ref when mode changes
-                      }}
-                      className={`p-3 border rounded-xl flex flex-col items-center justify-center gap-2 transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-primary bg-primary/5 text-primary font-bold shadow-xs'
-                          : 'border-zinc-200 hover:border-primary/45 hover:bg-primary/5/10 text-zinc-650'
-                      }`}
-                    >
-                      <Icon className={`h-5 w-5 ${isSelected ? 'text-primary' : 'text-zinc-550'}`} />
-                      <Text className="text-xs font-semibold">{item.label}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* Ref Code for Digital Modes */}
-            {(paymentMethod === 'UPI' || paymentMethod === 'Card') && (
-              <View className="space-y-1.5">
-                <Text className="block text-xs font-bold text-zinc-500 font-heading">
-                  Transaction Reference / UTR Number *
-                </Text>
-                <TextInput
-                  placeholder="Enter 12-digit transaction ID or reference"
-                  value={transactionRef}
-                  onChangeText={(text) => setTransactionRef(text)}
-                  className="w-full h-10 px-3 border border-zinc-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder-zinc-400"
-                />
-              </View>
-            )}
-
-            {/* Submit */}
-            <View className="pt-2">
-              <TouchableOpacity
-                onPress={handlePaymentSubmit}
-                disabled={isSubmitting}
-                className="w-full h-10 bg-cta hover:opacity-90 text-white rounded-lg text-sm font-semibold shadow-sm transition-all flex flex-row items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
-              >
-                {isSubmitting ? (
-                  <>
-                    <ActivityIndicator size="small" color="#ffffff" className="mr-1.5" />
-                    <Text className="text-white font-semibold">Processing...</Text>
-                  </>
-                ) : (
-                  <>
-                    <FileCheck2 className="h-4.5 w-4.5 text-white" />
-                    <Text className="text-white font-semibold">{amount === 0 ? 'Confirm Free Visit' : 'Confirm Consultation Payment'}</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+            <View className="flex-1">
+              <Text className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Visit Number</Text>
+              <Text className="font-mono font-black text-cyan-800 text-xs">{visitNumber}</Text>
             </View>
           </View>
+
+          {/* Amount display */}
+          <View className="items-center justify-center py-5 border border-slate-200/70 rounded-2xl bg-slate-50/50">
+            <Text className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Total Amount Due</Text>
+            <Text className="text-3xl font-black text-slate-900 mt-1">₹{amount}</Text>
+            {amount === 0 ? (
+              <Text className="text-[10px] text-emerald-600 mt-1 font-black uppercase">Repeat Patient - Free Consultation</Text>
+            ) : (
+              <Text className="text-[10px] text-slate-400 mt-1 font-medium">Consultation fee only. Includes basic OPD taxes.</Text>
+            )}
+          </View>
+
+          {/* Select Method */}
+          <View className="gap-2">
+            <Text className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Select Payment Method</Text>
+            <View className="flex-row gap-2.5">
+              {paymentModes.map((item) => {
+                const Icon = item.icon;
+                const isSelected = paymentMethod === item.mode;
+                return (
+                  <TouchableOpacity
+                    key={item.mode}
+                    onPress={() => {
+                      setPaymentMethod(item.mode);
+                      setTransactionRef('');
+                    }}
+                    className={`flex-1 p-3 border rounded-2xl items-center justify-center gap-1.5 ${
+                      isSelected
+                        ? 'border-cyan-600 bg-cyan-50'
+                        : 'border-slate-200/70 bg-white active:bg-slate-50'
+                    }`}
+                  >
+                    <Icon className={`h-5 w-5 ${isSelected ? 'text-cyan-600' : 'text-slate-400'}`} />
+                    <Text className={`text-xs font-bold ${isSelected ? 'text-cyan-900' : 'text-slate-700'}`}>{item.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Ref Code for Digital Modes */}
+          {(paymentMethod === 'UPI' || paymentMethod === 'Card') && (
+            <View className="gap-1">
+              <Text className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                Transaction Reference / UTR Number *
+              </Text>
+              <TextInput
+                placeholder="Enter 12-digit transaction ID or reference"
+                value={transactionRef}
+                onChangeText={(text) => setTransactionRef(text)}
+                className="w-full h-10 px-3 border border-slate-200/70 rounded-2xl text-xs bg-slate-50 text-slate-900 font-bold"
+                placeholderTextColor="#94a3b8"
+              />
+            </View>
+          )}
+
+          {/* Submit Button */}
+          <TouchableOpacity
+            onPress={handlePaymentSubmit}
+            disabled={isSubmitting}
+            className="w-full h-12 bg-cyan-600 active:bg-cyan-700 rounded-2xl flex-row items-center justify-center gap-2 shadow-xs mt-2"
+          >
+            {isSubmitting ? (
+              <>
+                <ActivityIndicator size="small" color="#ffffff" />
+                <Text className="text-white font-black text-xs">Processing...</Text>
+              </>
+            ) : (
+              <>
+                <FileCheck2 className="h-4 w-4 text-white" />
+                <Text className="text-white font-black text-xs">
+                  {amount === 0 ? 'Confirm Free Visit' : 'Confirm Consultation Payment'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
         </CardContent>
       </Card>
     </View>

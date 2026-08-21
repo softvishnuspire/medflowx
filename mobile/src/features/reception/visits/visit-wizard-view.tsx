@@ -378,7 +378,6 @@ export default function VisitWizardView({ initialPatient, onVisitCreated }: Visi
                         <Text className={`text-xs font-black ${isSelected ? 'text-cyan-900' : 'text-slate-900'}`}>
                           {docName}
                         </Text>
-                        <Text className="text-[10px] text-slate-500 font-bold mt-0.5">{deptName}</Text>
                       </View>
                     </View>
 

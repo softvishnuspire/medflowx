@@ -207,7 +207,7 @@ export const VisitWizardScreen: React.FC<VisitWizardScreenProps> = ({ initialPat
                   <View style={styles.doctorInfo}>
                     <Text style={[styles.doctorName, isSelected && styles.docSelectedText]}>{docName}</Text>
                     <Text style={[styles.doctorDept, isSelected && styles.docSelectedSubText]}>
-                      {deptName} • {doc.qualification || 'MBBS'}
+                      {doc.qualification || 'MD - Dermatology & Trichology'}
                     </Text>
                   </View>
                   <View style={styles.doctorPricing}>

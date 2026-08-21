@@ -427,7 +427,7 @@ export default function UsersView() {
                   <div>
                     <span className="block text-zinc-400 mb-0.5">Department</span>
                     <span className="font-bold text-zinc-800">
-                      {selectedUserForView.doctors.departments?.department_name || 'General Medicine'}
+                      {selectedUserForView.doctors.departments?.department_name || 'Hair Care & Trichology'}
                     </span>
                   </div>
                   <div>

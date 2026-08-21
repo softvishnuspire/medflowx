@@ -30,10 +30,10 @@ const MOCK_ROLES: Role[] = [
 ];
 
 const MOCK_DEPARTMENTS: Department[] = [
-  { id: 1, department_name: 'General Medicine' },
-  { id: 2, department_name: 'ENT' },
-  { id: 3, department_name: 'Dental' },
-  { id: 4, department_name: 'Cardiology' }
+  { id: 1, department_name: 'Hair Care & Trichology' },
+  { id: 2, department_name: 'Skin & Dermatology' },
+  { id: 3, department_name: 'Hair & Skin Combo' },
+  { id: 4, department_name: 'Aesthetic & Laser Care' }
 ];
 
 const DEFAULT_PROFILES = [
@@ -47,10 +47,10 @@ const DEFAULT_PROFILES = [
 ];
 
 const DEFAULT_DOCTORS = [
-  { id: 1, user_id: 'doc-1', department_id: 1, qualification: 'MD - General Medicine', consultation_fee: 350 },
-  { id: 2, user_id: 'doc-2', department_id: 2, qualification: 'MS - ENT', consultation_fee: 400 },
-  { id: 3, user_id: 'doc-3', department_id: 3, qualification: 'BDS, MDS - Dental', consultation_fee: 300 },
-  { id: 4, user_id: 'doc-4', department_id: 4, qualification: 'DM - Cardiology', consultation_fee: 600 }
+  { id: 1, user_id: 'doc-1', department_id: 1, qualification: 'MD - Dermatology & Trichology', consultation_fee: 500 },
+  { id: 2, user_id: 'doc-2', department_id: 2, qualification: 'DNB - Skin & Cosmetology', consultation_fee: 500 },
+  { id: 3, user_id: 'doc-3', department_id: 3, qualification: 'MD - Hair & Skin Specialist', consultation_fee: 600 },
+  { id: 4, user_id: 'doc-4', department_id: 4, qualification: 'Fellowship - Laser & Aesthetics', consultation_fee: 600 }
 ];
 
 // Helper functions for storage
@@ -874,9 +874,9 @@ export async function getVisitsList(filters: { doctorId?: string; departmentId?:
         query = query.eq('status', filters.status);
       }
       if (filters.date) {
-        const start = new Date(filters.date);
+        const start = parseDate(filters.date);
         start.setHours(0, 0, 0, 0);
-        const end = new Date(filters.date);
+        const end = parseDate(filters.date);
         end.setHours(23, 59, 59, 999);
         query = query.gte('visit_date', start.toISOString()).lte('visit_date', end.toISOString());
       }
@@ -928,7 +928,7 @@ export async function getVisitsList(filters: { doctorId?: string; departmentId?:
     list = list.filter(v => v.status === filters.status);
   }
   if (filters.date) {
-    const dateStr = new Date(filters.date).toDateString();
+    const dateStr = parseDate(filters.date).toDateString();
     list = list.filter(v => new Date(v.visit_date).toDateString() === dateStr);
   }
 
@@ -952,9 +952,9 @@ export async function getPaymentsList(filters: { date?: string; paymentMode?: st
         query = query.eq('payment_status', filters.paymentStatus);
       }
       if (filters.date) {
-        const start = new Date(filters.date);
+        const start = parseDate(filters.date);
         start.setHours(0, 0, 0, 0);
-        const end = new Date(filters.date);
+        const end = parseDate(filters.date);
         end.setHours(23, 59, 59, 999);
         query = query.gte('created_at', start.toISOString()).lte('created_at', end.toISOString());
       }
@@ -1041,7 +1041,7 @@ export async function getPaymentsList(filters: { date?: string; paymentMode?: st
     list = list.filter(p => p.invoices?.visits?.doctor_id === Number(filters.doctorId));
   }
   if (filters.date) {
-    const dateStr = new Date(filters.date).toDateString();
+    const dateStr = parseDate(filters.date).toDateString();
     list = list.filter(p => new Date(p.created_at).toDateString() === dateStr);
   }
 
@@ -1076,13 +1076,38 @@ export async function getPaymentsList(filters: { date?: string; paymentMode?: st
   };
 }
 
+export function formatDateToDDMMYYYY(date: Date): string {
+  if (isNaN(date.getTime())) return '';
+  const d = String(date.getDate()).padStart(2, '0');
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const y = date.getFullYear();
+  return `${d}-${m}-${y}`;
+}
+
+export function parseDate(dateStr: string): Date {
+  if (!dateStr) return new Date();
+  const clean = dateStr.trim();
+  const ddmmyyyyMatch = clean.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (ddmmyyyyMatch) {
+    const day = parseInt(ddmmyyyyMatch[1], 10);
+    const month = parseInt(ddmmyyyyMatch[2], 10) - 1;
+    const year = parseInt(ddmmyyyyMatch[3], 10);
+    return new Date(year, month, day);
+  }
+  const d = new Date(clean);
+  if (!isNaN(d.getTime())) {
+    return d;
+  }
+  return new Date();
+}
+
 /**
  * Generate aggregate reporting metrics
  */
 export async function getReportData(dateRange: { start: string; end: string }): Promise<ClinicReportData> {
-  const start = new Date(dateRange.start);
+  const start = parseDate(dateRange.start);
   start.setHours(0, 0, 0, 0);
-  const end = new Date(dateRange.end);
+  const end = parseDate(dateRange.end);
   end.setHours(23, 59, 59, 999);
 
   if (isSupabaseConfigured) {
@@ -1096,7 +1121,7 @@ export async function getReportData(dateRange: { start: string; end: string }): 
       if (paymentsRes.data && patientsRes.data && visitsRes.data) {
         const dailyRevMap: Record<string, { amount: number; count: number }> = {};
         (paymentsRes.data || []).forEach((p: any) => {
-          const dateStr = new Date(p.created_at).toLocaleDateString();
+          const dateStr = formatDateToDDMMYYYY(new Date(p.created_at));
           if (!dailyRevMap[dateStr]) dailyRevMap[dateStr] = { amount: 0, count: 0 };
           dailyRevMap[dateStr].amount += Number(p.amount);
           dailyRevMap[dateStr].count += 1;
@@ -1190,7 +1215,7 @@ export async function getReportData(dateRange: { start: string; end: string }): 
 
   const dailyRevMap: Record<string, { amount: number; count: number }> = {};
   rangePayments.forEach(p => {
-    const dateStr = new Date(p.created_at).toLocaleDateString();
+    const dateStr = formatDateToDDMMYYYY(new Date(p.created_at));
     if (!dailyRevMap[dateStr]) dailyRevMap[dateStr] = { amount: 0, count: 0 };
     dailyRevMap[dateStr].amount += Number(p.amount);
     dailyRevMap[dateStr].count += 1;

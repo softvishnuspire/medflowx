@@ -328,7 +328,7 @@ export default function VisitsView() {
                 <span className="text-zinc-400 font-semibold uppercase block mb-0.5 font-heading">Assigned Department</span>
                 <span className="font-medium text-zinc-800 text-sm flex items-center gap-1">
                   <Building2 className="h-3.5 w-3.5 text-zinc-400" />
-                  {selectedVisitForView.doctors?.departments?.department_name || 'General Medicine'}
+                  {selectedVisitForView.doctors?.departments?.department_name || 'Hair Care & Trichology'}
                 </span>
               </div>
 

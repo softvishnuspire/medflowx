@@ -62,7 +62,7 @@ export default function ProfileView({ selectedDoctor }: ProfileViewProps) {
           </Text>
           <View className="mt-4 flex-row items-center gap-1.5 px-3.5 py-1.5 bg-cyan-50 border border-cyan-200 rounded-full shadow-xs">
             <Heart className="h-4 w-4 text-primary animate-pulse" />
-            <Text className="text-xs font-bold text-primary">General Medicine Dept</Text>
+            <Text className="text-xs font-bold text-primary">Hair Care & Trichology Dept</Text>
           </View>
         </Card>
 

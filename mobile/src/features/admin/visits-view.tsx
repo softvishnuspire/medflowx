@@ -152,13 +152,13 @@ export default function VisitsView() {
         {/* Explicit Row 2: Visit Date & Status */}
         <View className="flex-row gap-2.5">
           <View className="flex-1">
-            <Text className="text-[10px] font-bold text-slate-400 uppercase mb-1">Visit Date (YYYY-MM-DD)</Text>
+            <Text className="text-[10px] font-bold text-slate-400 uppercase mb-1">Visit Date (DD-MM-YYYY)</Text>
             <View className="flex-row items-center bg-slate-50 border border-slate-200/70 rounded-2xl px-3 h-10">
               <Calendar className="h-3.5 w-3.5 text-slate-400 mr-2" />
               <TextInput
                 value={selectedDate}
                 onChangeText={setSelectedDate}
-                placeholder="All Dates"
+                placeholder="DD-MM-YYYY"
                 className="flex-1 text-xs font-bold text-slate-800"
                 placeholderTextColor="#94a3b8"
               />
@@ -327,7 +327,7 @@ export default function VisitsView() {
               <View className="flex-row justify-between border-b border-slate-50 pb-2">
                 <Text className="text-xs text-slate-400 font-bold">Department</Text>
                 <Text className="text-xs font-bold text-slate-800">
-                  {selectedVisitForView.doctors?.departments?.department_name || 'General Medicine'}
+                  {selectedVisitForView.doctors?.departments?.department_name || 'Hair Care & Trichology'}
                 </Text>
               </View>
               <View className="flex-row justify-between border-b border-slate-50 pb-2">

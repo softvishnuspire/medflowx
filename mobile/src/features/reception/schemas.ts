@@ -8,10 +8,8 @@ export const patientSchema = z.object({
   }),
   dob: z.string().optional().refine((val) => {
     if (!val || val === '') return true;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(val)) return false;
-    const date = new Date(val);
-    return !isNaN(date.getTime()) && val === date.toISOString().split('T')[0];
-  }, 'Invalid date (YYYY-MM-DD)'),
+    return /^\d{2}-\d{2}-\d{4}$/.test(val) || /^\d{4}-\d{2}-\d{2}$/.test(val);
+  }, 'Invalid date (DD-MM-YYYY)'),
   age: z
     .number({ message: 'Age must be a number' })
     .int('Age must be an integer')

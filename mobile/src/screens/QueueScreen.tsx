@@ -119,7 +119,7 @@ export const QueueScreen: React.FC<QueueScreenProps> = ({ onNavigate }) => {
               {item.patients?.patient_code} • {item.patients?.gender} • {item.patients?.age || 'N/A'} yrs
             </Text>
             <Text style={styles.docText}>
-              {docName} ({deptName})
+              {docName}
             </Text>
           </View>
 

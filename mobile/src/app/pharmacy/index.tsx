@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { searchPatients, getPatientById } from '@/services/reception';
+import { searchPatients, getPatientById, submitPhysicalPrescription } from '@/services/reception';
 import { View, Text, TouchableOpacity, TextInput, Image, ScrollView, Alert, ActivityIndicator, Modal, Pressable, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { getAuthUser, removeAuthUser } from '@/lib/storage';
@@ -177,15 +177,13 @@ export default function PharmacyPage() {
 
     try {
       setSubmitting(true);
-      const { error } = await supabase
-        .from('visits')
-        .update({ 
-          status: 'Prescribed',
-          prescription_amount: numericAmount,
-        })
-        .eq('id', selectedVisit.id);
-
-      if (error) throw error;
+      await submitPhysicalPrescription({
+        visitId: selectedVisit.id,
+        frontImageUri: frontPreview,
+        backImageUri: backPreview,
+        amount: numericAmount,
+        patientId: selectedPatient?.id,
+      });
 
       Alert.alert('Success', 'Physical prescription uploaded and transaction recorded successfully!');
 

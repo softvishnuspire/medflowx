@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getReportData } from '@/services/admin';
+import { getReportData, formatDateToDDMMYYYY } from '@/services/admin';
 import { ClinicReportData } from '@/types/admin';
 import { View, Text, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import {
@@ -18,14 +18,14 @@ export default function ReportsView() {
   const [reportData, setReportData] = useState<ClinicReportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Date Range (default: last 30 days)
+  // Date Range (default: last 30 days) formatted as DD-MM-YYYY
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
-    return d.toISOString().slice(0, 10);
+    return formatDateToDDMMYYYY(d);
   });
   const [endDate, setEndDate] = useState(() => {
-    return new Date().toISOString().slice(0, 10);
+    return formatDateToDDMMYYYY(new Date());
   });
 
   const [activeReportTab, setActiveReportTab] = useState<'treatments' | 'revenue' | 'patients' | 'doctors' | 'payments'>('treatments');
@@ -94,7 +94,7 @@ export default function ReportsView() {
             <TextInput
               value={startDate}
               onChangeText={setStartDate}
-              placeholder="YYYY-MM-DD"
+              placeholder="DD-MM-YYYY"
               className="w-full h-10 px-3 bg-slate-50 border border-slate-200/70 rounded-2xl text-xs font-bold text-slate-800"
               placeholderTextColor="#94a3b8"
             />
@@ -105,7 +105,7 @@ export default function ReportsView() {
             <TextInput
               value={endDate}
               onChangeText={setEndDate}
-              placeholder="YYYY-MM-DD"
+              placeholder="DD-MM-YYYY"
               className="w-full h-10 px-3 bg-slate-50 border border-slate-200/70 rounded-2xl text-xs font-bold text-slate-800"
               placeholderTextColor="#94a3b8"
             />

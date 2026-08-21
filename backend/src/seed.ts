@@ -132,8 +132,8 @@ async function main() {
       .from('doctors')
       .insert({
         user_id: doctorUserId,
-        department_id: 1, // General Medicine
-        qualification: 'MBBS, MD (General Medicine)',
+        department_id: 1, // Hair Care & Trichology
+        qualification: 'MBBS, MD (Dermatology & Trichology)',
         consultation_fee: 500.00
       })
       .select()

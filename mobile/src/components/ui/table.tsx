@@ -41,17 +41,17 @@ export function TableRow({ children, className = '', ...props }: React.Component
 
 export function TableHead({ children, className = '', ...props }: React.ComponentProps<typeof View>) {
   return (
-    <View className={`flex-1 px-4 py-3 justify-center ${className}`} {...props}>
-      <Text className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">{children}</Text>
+    <View className={`px-3 py-3 justify-center ${className}`} {...props}>
+      <Text className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{children}</Text>
     </View>
   );
 }
 
 export function TableCell({ children, className = '', ...props }: React.ComponentProps<typeof View>) {
   return (
-    <View className={`flex-1 px-4 py-4 justify-center ${className}`} {...props}>
+    <View className={`px-3 py-3 justify-center ${className}`} {...props}>
       {typeof children === 'string' || typeof children === 'number' ? (
-        <Text className={`${className}`}>{children}</Text>
+        <Text className={`text-xs font-bold text-slate-800 ${className}`}>{children}</Text>
       ) : (
         children
       )}
